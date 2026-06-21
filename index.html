@@ -37,7 +37,6 @@
             min-height: 100vh;
         }
 
-        /* ========== SCROLLBAR ========== */
         ::-webkit-scrollbar {
             width: 6px;
         }
@@ -286,7 +285,6 @@
             border-color: var(--primary);
         }
 
-        /* ========== MEETING INFO ========== */
         .meeting-info {
             display: flex;
             gap: 20px;
@@ -395,6 +393,7 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
+            background: #0a0a1a;
         }
 
         .video-item .video-label {
@@ -426,27 +425,12 @@
             border-radius: 20px;
             font-size: 0.7rem;
             display: none;
-        }
-
-        .video-item .mute-indicator.show {
-            display: flex;
             align-items: center;
             gap: 4px;
         }
 
-        .video-item .video-placeholder {
+        .video-item .mute-indicator.show {
             display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100%;
-            color: rgba(255, 255, 255, 0.2);
-            font-size: 3rem;
-        }
-
-        .video-item .video-placeholder span {
-            font-size: 0.8rem;
-            margin-top: 8px;
         }
 
         /* ========== CONTROLS BAR ========== */
@@ -538,58 +522,46 @@
             .navbar {
                 padding: 12px 16px;
             }
-
             .navbar .logo {
                 font-size: 1.2rem;
             }
-
             .main-container {
                 padding: 12px;
             }
-
             .create-meeting-section {
                 padding: 20px;
             }
-
             .create-meeting-form {
                 flex-direction: column;
             }
-
             .create-meeting-form input {
                 width: 100%;
                 min-width: unset;
             }
-
             .create-meeting-form .btn {
                 width: 100%;
                 justify-content: center;
             }
-
             .invite-link-card .link-box {
                 flex-direction: column;
             }
-
             .invite-link-card .link-box input {
                 width: 100%;
                 min-width: unset;
             }
-
             .video-grid {
                 grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
                 gap: 10px;
             }
-
             .controls-bar .btn {
                 padding: 10px 14px;
                 min-width: 50px;
                 font-size: 0.8rem;
             }
-
             .video-section .section-header {
                 flex-direction: column;
                 align-items: flex-start;
             }
-
             .meeting-info {
                 flex-direction: column;
                 gap: 8px;
@@ -649,7 +621,7 @@
                     <input type="text" id="inviteLinkInput" readonly />
                     <button class="btn btn-copy" id="copyLinkBtn"><i class="fas fa-copy"></i> কপি</button>
                     <button class="btn btn-success" id="joinAsHostBtn"><i class="fas fa-video"></i> মিটিং শুরু</button>
-                    <button class="btn btn-danger" id="endMeetingBtn"><i class="fas fa-times"></i> শেষ</button>
+                    <button class="btn btn-danger" id="endMeetingBtn" style="display:none;"><i class="fas fa-times"></i> শেষ</button>
                 </div>
                 <div class="meeting-info">
                     <div class="info-item"><i class="fas fa-clock"></i> <span id="meetingStatus">অপেক্ষমান</span></div>
@@ -756,7 +728,9 @@
                 { urls: 'stun:stun.l.google.com:19302' },
                 { urls: 'stun:stun1.l.google.com:19302' },
                 { urls: 'stun:stun2.l.google.com:19302' },
-            ]
+                { urls: 'stun:stun3.l.google.com:19302' },
+            ],
+            iceCandidatePoolSize: 10
         };
 
         // ============================================================
@@ -792,8 +766,16 @@
         async function getLocalMedia() {
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({
-                    video: { width: { ideal: 640 }, height: { ideal: 480 } },
-                    audio: { echoCancellation: true, noiseSuppression: true }
+                    video: {
+                        width: { ideal: 640 },
+                        height: { ideal: 480 },
+                        facingMode: 'user'
+                    },
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true
+                    }
                 });
                 return stream;
             } catch (err) {
@@ -806,8 +788,19 @@
         //  CREATE VIDEO ELEMENT
         // ============================================================
         function createVideoElement(uid, name, isLocal = false, role = '') {
+            // Remove empty state
             videoGrid.classList.remove('empty');
-            videoGrid.innerHTML = '';
+            
+            // Check if element already exists
+            const existing = document.getElementById(`video-${uid}`);
+            if (existing) {
+                return {
+                    wrapper: existing,
+                    video: existing.querySelector('video'),
+                    label: existing.querySelector('.video-label'),
+                    muteInd: existing.querySelector('.mute-indicator')
+                };
+            }
 
             const wrapper = document.createElement('div');
             wrapper.className = 'video-item';
@@ -853,6 +846,7 @@
                 el.remove();
             }
 
+            // Check if grid is empty
             if (videoGrid.children.length === 0) {
                 videoGrid.classList.add('empty');
                 videoGrid.innerHTML = `
@@ -877,19 +871,26 @@
         }
 
         // ============================================================
-        //  CREATE PEER CONNECTION
+        //  CREATE PEER CONNECTION (Mesh Topology)
         // ============================================================
         function createPeerConnection(peerId, isOfferer = false) {
+            console.log(`Creating peer connection with ${peerId}, offerer: ${isOfferer}`);
+            
             const pc = new RTCPeerConnection(rtcConfig);
 
+            // Add local tracks to peer
             if (localStream) {
                 localStream.getTracks().forEach(track => {
                     pc.addTrack(track, localStream);
                 });
             }
 
+            // Handle incoming tracks
             pc.ontrack = (event) => {
+                console.log(`Received track from ${peerId}`);
                 const [stream] = event.streams;
+                
+                // Check if video element exists, if not create it
                 let videoWrapper = document.getElementById(`video-${peerId}`);
                 if (!videoWrapper) {
                     // Get participant name from Firebase
@@ -898,16 +899,25 @@
                             const name = snap.val() || peerId.substring(0, 12);
                             const role = peerId === userId ? 'হোস্ট' : '';
                             const { wrapper, video } = createVideoElement(peerId, name, false, role);
-                            video.srcObject = stream;
-                        });
+                            if (video) {
+                                video.srcObject = stream;
+                                video.play().catch(e => console.warn('Video play error:', e));
+                            }
+                        })
+                        .catch(err => console.error('Error getting participant name:', err));
                 } else {
                     const video = videoWrapper.querySelector('video');
-                    if (video) video.srcObject = stream;
+                    if (video) {
+                        video.srcObject = stream;
+                        video.play().catch(e => console.warn('Video play error:', e));
+                    }
                 }
             };
 
+            // Handle ICE candidates
             pc.onicecandidate = (event) => {
                 if (event.candidate) {
+                    console.log(`Sending ICE candidate to ${peerId}`);
                     sendSignal(peerId, {
                         type: 'candidate',
                         candidate: event.candidate
@@ -915,29 +925,45 @@
                 }
             };
 
-            pc.onconnectionstatechange = () => {
-                if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed') {
+            // ICE connection state
+            pc.oniceconnectionstatechange = () => {
+                console.log(`ICE state with ${peerId}: ${pc.iceConnectionState}`);
+                if (pc.iceConnectionState === 'disconnected' || 
+                    pc.iceConnectionState === 'failed' || 
+                    pc.iceConnectionState === 'closed') {
+                    console.log(`Disconnected from ${peerId}`);
                     removeVideoElement(peerId);
                     delete peerConnections[peerId];
-                    if (signalsRef) {
-                        signalsRef.child(peerId).remove();
-                    }
                     updateParticipantCount();
+                }
+            };
+
+            // Connection state
+            pc.onconnectionstatechange = () => {
+                console.log(`Connection state with ${peerId}: ${pc.connectionState}`);
+                if (pc.connectionState === 'connected') {
+                    showToast(`✅ ${peerId.substring(0, 10)}... এর সাথে সংযুক্ত`);
                 }
             };
 
             peerConnections[peerId] = pc;
 
+            // If we are the offerer, create offer
             if (isOfferer) {
-                pc.createOffer()
-                    .then(offer => pc.setLocalDescription(offer))
-                    .then(() => {
-                        sendSignal(peerId, {
-                            type: 'offer',
-                            sdp: pc.localDescription
-                        });
-                    })
-                    .catch(err => console.error('Offer error:', err));
+                setTimeout(() => {
+                    pc.createOffer()
+                        .then(offer => {
+                            console.log(`Creating offer for ${peerId}`);
+                            return pc.setLocalDescription(offer);
+                        })
+                        .then(() => {
+                            sendSignal(peerId, {
+                                type: 'offer',
+                                sdp: pc.localDescription
+                            });
+                        })
+                        .catch(err => console.error('Offer error:', err));
+                }, 500);
             }
 
             return pc;
@@ -947,36 +973,51 @@
         //  HANDLE SIGNALS
         // ============================================================
         function handleSignal(peerId, signalData) {
-            const pc = peerConnections[peerId];
+            const signal = signalData.signal;
+            console.log(`Handling signal from ${peerId}:`, signal.type);
+
+            // Get or create peer connection
+            let pc = peerConnections[peerId];
+
             if (!pc) {
-                if (signalData.signal.type === 'offer') {
-                    createPeerConnection(peerId, false);
-                    setTimeout(() => handleSignal(peerId, signalData), 100);
+                if (signal.type === 'offer') {
+                    console.log(`Creating peer connection as answerer for ${peerId}`);
+                    pc = createPeerConnection(peerId, false);
+                } else {
+                    console.log(`No peer connection for ${peerId}, ignoring signal`);
+                    return;
                 }
-                return;
             }
 
-            const signal = signalData.signal;
-
-            if (signal.type === 'offer') {
-                pc.setRemoteDescription(new RTCSessionDescription(signal.sdp))
-                    .then(() => pc.createAnswer())
-                    .then(answer => pc.setLocalDescription(answer))
-                    .then(() => {
-                        sendSignal(peerId, {
-                            type: 'answer',
-                            sdp: pc.localDescription
-                        });
-                    })
-                    .catch(err => console.error('Answer error:', err));
-            } else if (signal.type === 'answer') {
-                pc.setRemoteDescription(new RTCSessionDescription(signal.sdp))
-                    .catch(err => console.error('Set remote desc error:', err));
-            } else if (signal.type === 'candidate') {
-                if (signal.candidate) {
-                    pc.addIceCandidate(new RTCIceCandidate(signal.candidate))
-                        .catch(err => console.error('Add ICE error:', err));
+            try {
+                if (signal.type === 'offer') {
+                    pc.setRemoteDescription(new RTCSessionDescription(signal.sdp))
+                        .then(() => {
+                            console.log(`Creating answer for ${peerId}`);
+                            return pc.createAnswer();
+                        })
+                        .then(answer => {
+                            console.log(`Setting local description for ${peerId}`);
+                            return pc.setLocalDescription(answer);
+                        })
+                        .then(() => {
+                            sendSignal(peerId, {
+                                type: 'answer',
+                                sdp: pc.localDescription
+                            });
+                        })
+                        .catch(err => console.error('Answer error:', err));
+                } else if (signal.type === 'answer') {
+                    pc.setRemoteDescription(new RTCSessionDescription(signal.sdp))
+                        .catch(err => console.error('Set remote desc error:', err));
+                } else if (signal.type === 'candidate') {
+                    if (signal.candidate) {
+                        pc.addIceCandidate(new RTCIceCandidate(signal.candidate))
+                            .catch(err => console.error('Add ICE error:', err));
+                    }
                 }
+            } catch (err) {
+                console.error('Signal handling error:', err);
             }
         }
 
@@ -1013,17 +1054,14 @@
             const meetingName = meetingNameInput.value.trim() || 'অফিস মিটিং';
             currentMeetingName = meetingName;
 
-            // Generate room ID
             currentRoomId = generateRoomId();
             userId = generateUserId();
             isHost = true;
 
-            // Setup Firebase refs
             roomRef = database.ref(`meetings/${currentRoomId}`);
             participantsRef = roomRef.child('participants');
             signalsRef = roomRef.child('signals');
 
-            // Save meeting info
             await roomRef.set({
                 name: meetingName,
                 hostId: userId,
@@ -1031,14 +1069,12 @@
                 status: 'waiting'
             });
 
-            // Add host to participants
             await participantsRef.child(userId).set({
                 name: 'বস',
                 role: 'host',
                 joinedAt: firebase.database.ServerValue.TIMESTAMP
             });
 
-            // Generate invite link
             const inviteLink = `${window.location.origin}${window.location.pathname}?room=${currentRoomId}`;
             inviteLinkInput.value = inviteLink;
             inviteLinkCard.classList.add('show');
@@ -1053,7 +1089,6 @@
 
             showToast(`✅ মিটিং তৈরি হয়েছে: ${meetingName}`);
 
-            // Enable join button
             joinAsHostBtn.disabled = false;
             createMeetingBtn.disabled = true;
             meetingNameInput.disabled = true;
@@ -1063,6 +1098,9 @@
                 const peerId = snapshot.key;
                 if (peerId === userId) return;
                 const data = snapshot.val();
+                console.log(`New participant: ${peerId}`);
+                
+                // Create peer connection as offerer
                 if (!peerConnections[peerId]) {
                     createPeerConnection(peerId, true);
                     showToast(`👤 ${data.name || 'কর্মী'} জয়েন করেছেন!`);
@@ -1073,6 +1111,7 @@
             participantsRef.on('child_removed', (snapshot) => {
                 const peerId = snapshot.key;
                 if (peerId === userId) return;
+                console.log(`Participant left: ${peerId}`);
                 removeVideoElement(peerId);
                 if (peerConnections[peerId]) {
                     peerConnections[peerId].close();
@@ -1086,6 +1125,7 @@
             signalsRef.on('child_added', (snapshot) => {
                 const peerId = snapshot.key;
                 if (peerId === userId) return;
+                
                 snapshot.ref.on('child_added', (signalSnapshot) => {
                     const data = signalSnapshot.val();
                     if (data.from === userId) return;
@@ -1093,7 +1133,6 @@
                 });
             });
 
-            // Update status if meeting ends
             roomRef.on('child_changed', (snapshot) => {
                 if (snapshot.key === 'status') {
                     const status = snapshot.val();
@@ -1105,7 +1144,6 @@
                 }
             });
 
-            // Auto-cleanup on disconnect
             roomRef.onDisconnect().update({
                 [`participants/${userId}`]: null
             });
@@ -1124,7 +1162,6 @@
             userId = generateUserId();
             isHost = false;
 
-            // Check if meeting exists
             const roomSnap = await database.ref(`meetings/${currentRoomId}`).once('value');
             if (!roomSnap.exists()) {
                 showToast('❌ এই মিটিংটি বিদ্যমান নেই!');
@@ -1139,22 +1176,18 @@
 
             currentMeetingName = roomData.name || 'অফিস মিটিং';
 
-            // Setup Firebase refs
             roomRef = database.ref(`meetings/${currentRoomId}`);
             participantsRef = roomRef.child('participants');
             signalsRef = roomRef.child('signals');
 
-            // Get user name
             userName = prompt('আপনার নাম দিন:', 'কর্মী') || 'কর্মী';
 
-            // Add to participants
             await participantsRef.child(userId).set({
                 name: userName,
                 role: 'employee',
                 joinedAt: firebase.database.ServerValue.TIMESTAMP
             });
 
-            // Update UI
             roomIdDisplay.textContent = currentRoomId;
             hostNameDisplay.textContent = roomData.hostId || 'বস';
             userRoleDisplay.innerHTML = `<i class="fas fa-user"></i> ${userName} (কর্মী)`;
@@ -1174,6 +1207,9 @@
                 const peerId = snapshot.key;
                 if (peerId === userId) return;
                 const data = snapshot.val();
+                console.log(`New participant: ${peerId}`);
+                
+                // Create peer connection as answerer (wait for offer)
                 if (!peerConnections[peerId]) {
                     createPeerConnection(peerId, false);
                 }
@@ -1183,6 +1219,7 @@
             participantsRef.on('child_removed', (snapshot) => {
                 const peerId = snapshot.key;
                 if (peerId === userId) return;
+                console.log(`Participant left: ${peerId}`);
                 removeVideoElement(peerId);
                 if (peerConnections[peerId]) {
                     peerConnections[peerId].close();
@@ -1194,6 +1231,7 @@
             signalsRef.on('child_added', (snapshot) => {
                 const peerId = snapshot.key;
                 if (peerId === userId) return;
+                
                 snapshot.ref.on('child_added', (signalSnapshot) => {
                     const data = signalSnapshot.val();
                     if (data.from === userId) return;
@@ -1216,11 +1254,11 @@
                 [`participants/${userId}`]: null
             });
 
-            // Auto-join after setting up listeners
+            // Start local stream
             await startLocalStream();
 
             joinAsHostBtn.disabled = true;
-            endMeetingBtn.style.display = isHost ? 'inline-flex' : 'none';
+            endMeetingBtn.style.display = 'none';
         }
 
         // ============================================================
@@ -1231,6 +1269,7 @@
                 localStream = await getLocalMedia();
                 const { video } = createVideoElement(userId, isHost ? 'বস' : userName, true, isHost ? 'হোস্ট' : '');
                 video.srcObject = localStream;
+                video.play().catch(e => console.warn('Video play error:', e));
 
                 isInMeeting = true;
                 micBtn.disabled = false;
@@ -1241,20 +1280,30 @@
                 if (isHost) {
                     await roomRef.update({ status: 'live' });
                     updateMeetingStatus('live');
+                    endMeetingBtn.style.display = 'inline-flex';
                 }
 
                 updateUIButtons();
                 showToast('🎥 ভিডিও স্ট্রিম শুরু হয়েছে!');
 
-                // Connect to existing participants
-                participantsRef.once('value', (snapshot) => {
-                    snapshot.forEach((child) => {
-                        const peerId = child.key;
-                        if (peerId !== userId && !peerConnections[peerId]) {
-                            createPeerConnection(peerId, isHost);
-                        }
+                // Connect to existing participants after stream is ready
+                setTimeout(() => {
+                    participantsRef.once('value', (snapshot) => {
+                        snapshot.forEach((child) => {
+                            const peerId = child.key;
+                            if (peerId !== userId && !peerConnections[peerId]) {
+                                console.log(`Connecting to existing participant: ${peerId}`);
+                                if (isHost) {
+                                    // Host offers connection
+                                    createPeerConnection(peerId, true);
+                                } else {
+                                    // Employee waits for offer
+                                    createPeerConnection(peerId, false);
+                                }
+                            }
+                        });
                     });
-                });
+                }, 1000);
 
             } catch (err) {
                 console.error('Stream error:', err);
@@ -1329,6 +1378,7 @@
             joinAsHostBtn.disabled = false;
             createMeetingBtn.disabled = false;
             meetingNameInput.disabled = false;
+            endMeetingBtn.style.display = 'none';
 
             updateMeetingStatus('ended');
             updateParticipantCount();
@@ -1505,7 +1555,6 @@
             const urlParams = new URLSearchParams(window.location.search);
             const roomId = urlParams.get('room');
             if (roomId) {
-                // This is an employee joining via invite link
                 setTimeout(() => {
                     joinMeeting(roomId);
                 }, 500);
@@ -1528,7 +1577,6 @@
         screenBtn.addEventListener('click', toggleScreenShare);
         leaveBtn.addEventListener('click', leaveMeeting);
 
-        // Enter key on meeting name
         meetingNameInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') createMeeting();
         });
@@ -1538,13 +1586,12 @@
         // ============================================================
         console.log('🏢 অফিস মিটিং অ্যাপ্লিকেশন রেডি!');
         console.log('👨‍💼 বস মিটিং তৈরি করবে, কর্মীরা লিংকে ক্লিক করে জয়েন করবে।');
+        console.log('👥 মেশ টপোলজি - সবাই সবাইকে দেখতে পাবে!');
 
-        // Check browser support
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
             showToast('❌ আপনার ব্রাউজার WebRTC সাপোর্ট করে না!', 5000);
         }
 
-        // Check for HTTPS
         const isSecure = window.location.protocol === 'https:' ||
             window.location.hostname === 'localhost' ||
             window.location.hostname === '127.0.0.1';
@@ -1553,10 +1600,7 @@
             showToast('⚠️ নিরাপদ সংযোগ প্রয়োজন! HTTPS বা localhost ব্যবহার করুন।', 5000);
         }
 
-        // Check URL for room join
         checkUrlForRoom();
-
-        // Hide end meeting button initially
         endMeetingBtn.style.display = 'none';
     </script>
 </body>
