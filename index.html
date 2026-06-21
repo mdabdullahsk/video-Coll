@@ -1,93 +1,699 @@
 <!DOCTYPE html>
 <html lang="bn">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Flawless Smart Meeting Room</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
-    
-    <script src="https://sdk.videosdk.live/js-sdk/0.0.83/videosdk.js"></script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>অফিস মিটিং - ভিডিও কনফারেন্সিং</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+    <style>
+        /* ========== CSS VARIABLES ========== */
+        :root {
+            --primary: #4A6CF7;
+            --primary-dark: #3651d4;
+            --secondary: #6C63FF;
+            --success: #2ecc71;
+            --danger: #e74c3c;
+            --warning: #f39c12;
+            --bg-dark: #0f0e17;
+            --bg-card: #1a1a2e;
+            --bg-light: #16213e;
+            --text-light: #fffffe;
+            --text-muted: #a7a9be;
+            --shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+            --radius: 16px;
+            --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-light);
+            min-height: 100vh;
+        }
+
+        /* ========== SCROLLBAR ========== */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--bg-dark);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 10px;
+        }
+
+        /* ========== NAVBAR ========== */
+        .navbar {
+            background: var(--bg-card);
+            padding: 16px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+        }
+
+        .navbar .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #4A6CF7, #6C63FF);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .navbar .logo i {
+            -webkit-text-fill-color: #4A6CF7;
+            margin-right: 10px;
+        }
+
+        .navbar .user-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .navbar .user-info .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        /* ========== MAIN CONTAINER ========== */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        /* ========== CREATE MEETING SECTION ========== */
+        .create-meeting-section {
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            padding: 32px;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .create-meeting-section h2 {
+            font-size: 1.8rem;
+            margin-bottom: 8px;
+        }
+
+        .create-meeting-section .subtitle {
+            color: var(--text-muted);
+            margin-bottom: 24px;
+        }
+
+        .create-meeting-form {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .create-meeting-form input {
+            flex: 1;
+            min-width: 200px;
+            padding: 14px 20px;
+            border-radius: 12px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+            font-size: 1rem;
+            transition: var(--transition);
+        }
+
+        .create-meeting-form input:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .create-meeting-form input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .btn {
+            padding: 14px 28px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            white-space: nowrap;
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(74, 108, 247, 0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: #fff;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: var(--primary-dark);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: #fff;
+        }
+
+        .btn-success:hover:not(:disabled) {
+            background: #27ae60;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: #fff;
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            background: #c0392b;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 2px solid var(--primary);
+            color: var(--primary);
+        }
+
+        .btn-outline:hover:not(:disabled) {
+            background: var(--primary);
+            color: #fff;
+        }
+
+        .btn-copy {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+        }
+
+        .btn-copy:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        /* ========== INVITE LINK CARD ========== */
+        .invite-link-card {
+            background: rgba(74, 108, 247, 0.1);
+            border: 1px solid rgba(74, 108, 247, 0.2);
+            border-radius: 12px;
+            padding: 20px 24px;
+            margin-top: 20px;
+            display: none;
+            animation: slideDown 0.4s ease;
+        }
+
+        .invite-link-card.show {
+            display: block;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .invite-link-card .link-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .invite-link-card .link-header h3 {
+            font-size: 1.1rem;
+            color: var(--primary);
+        }
+
+        .invite-link-card .link-box {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .invite-link-card .link-box input {
+            flex: 1;
+            min-width: 250px;
+            padding: 12px 16px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(0, 0, 0, 0.3);
+            color: #fff;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+
+        .invite-link-card .link-box input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        /* ========== MEETING INFO ========== */
+        .meeting-info {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .meeting-info .info-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .meeting-info .info-item i {
+            color: var(--primary);
+        }
+
+        /* ========== VIDEO GRID ========== */
+        .video-section {
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            padding: 24px;
+            box-shadow: var(--shadow);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            min-height: 400px;
+        }
+
+        .video-section .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .video-section .section-header h2 {
+            font-size: 1.4rem;
+        }
+
+        .video-section .section-header .status-badge {
+            padding: 8px 20px;
+            border-radius: 30px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .status-badge.waiting {
+            background: rgba(243, 156, 18, 0.2);
+            color: var(--warning);
+        }
+
+        .status-badge.live {
+            background: rgba(46, 204, 113, 0.2);
+            color: var(--success);
+        }
+
+        .status-badge.ended {
+            background: rgba(231, 76, 60, 0.2);
+            color: var(--danger);
+        }
+
+        .video-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 16px;
+            min-height: 300px;
+            align-content: start;
+        }
+
+        .video-grid.empty {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            gap: 16px;
+            color: var(--text-muted);
+            min-height: 300px;
+        }
+
+        .video-grid.empty i {
+            font-size: 4rem;
+            opacity: 0.3;
+        }
+
+        .video-item {
+            position: relative;
+            background: #0a0a1a;
+            border-radius: 12px;
+            overflow: hidden;
+            aspect-ratio: 4/3;
+            border: 2px solid transparent;
+            transition: var(--transition);
+        }
+
+        .video-item.active-speaker {
+            border-color: var(--primary);
+            box-shadow: 0 0 30px rgba(74, 108, 247, 0.2);
+        }
+
+        .video-item video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .video-item .video-label {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            backdrop-filter: blur(4px);
+        }
+
+        .video-item .video-label .role-badge {
+            background: var(--primary);
+            padding: 1px 8px;
+            border-radius: 10px;
+            font-size: 0.6rem;
+            margin-left: 6px;
+        }
+
+        .video-item .mute-indicator {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            display: none;
+        }
+
+        .video-item .mute-indicator.show {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .video-item .video-placeholder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: rgba(255, 255, 255, 0.2);
+            font-size: 3rem;
+        }
+
+        .video-item .video-placeholder span {
+            font-size: 0.8rem;
+            margin-top: 8px;
+        }
+
+        /* ========== CONTROLS BAR ========== */
+        .controls-bar {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .controls-bar .btn {
+            padding: 12px 20px;
+            min-width: 60px;
+            justify-content: center;
+            border-radius: 40px;
+        }
+
+        .controls-bar .btn i {
+            font-size: 1.2rem;
+        }
+
+        .btn-mic {
+            background: rgba(255, 255, 255, 0.08);
+            color: #fff;
+        }
+
+        .btn-mic.muted {
+            background: var(--danger);
+            color: #fff;
+        }
+
+        .btn-cam {
+            background: rgba(255, 255, 255, 0.08);
+            color: #fff;
+        }
+
+        .btn-cam.off {
+            background: var(--danger);
+            color: #fff;
+        }
+
+        .btn-screen {
+            background: rgba(255, 255, 255, 0.08);
+            color: #fff;
+        }
+
+        .btn-screen.active {
+            background: var(--success);
+            color: #fff;
+        }
+
+        /* ========== TOAST ========== */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(10px);
+            padding: 14px 28px;
+            border-radius: 40px;
+            color: #fff;
+            font-weight: 500;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: none;
+            z-index: 999;
+            animation: slideUp 0.4s ease;
+            max-width: 90%;
+            text-align: center;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+
+        /* ========== RESPONSIVE ========== */
+        @media (max-width: 768px) {
+            .navbar {
+                padding: 12px 16px;
+            }
+
+            .navbar .logo {
+                font-size: 1.2rem;
+            }
+
+            .main-container {
+                padding: 12px;
+            }
+
+            .create-meeting-section {
+                padding: 20px;
+            }
+
+            .create-meeting-form {
+                flex-direction: column;
+            }
+
+            .create-meeting-form input {
+                width: 100%;
+                min-width: unset;
+            }
+
+            .create-meeting-form .btn {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .invite-link-card .link-box {
+                flex-direction: column;
+            }
+
+            .invite-link-card .link-box input {
+                width: 100%;
+                min-width: unset;
+            }
+
+            .video-grid {
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+                gap: 10px;
+            }
+
+            .controls-bar .btn {
+                padding: 10px 14px;
+                min-width: 50px;
+                font-size: 0.8rem;
+            }
+
+            .video-section .section-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .meeting-info {
+                flex-direction: column;
+                gap: 8px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .video-grid {
+                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+                gap: 8px;
+            }
+        }
+    </style>
 </head>
-<body class="bg-gray-900 text-white font-sans antialiased">
+<body>
 
-    <div class="container mx-auto max-w-5xl p-4 min-h-screen flex flex-col justify-between">
-        
-        <header class="text-center my-4">
-            <h1 class="text-3xl font-extrabold tracking-tight text-blue-500">Flawless Meeting Platform</h1>
-            <p class="text-gray-400 text-sm mt-1">কাস্টম রুম এবং ইনস্ট্যান্ট ইনভাইট লিংক ফিচারসহ</p>
-        </header>
+    <!-- ========== TOAST ========== -->
+    <div id="toast" class="toast"></div>
 
-        <div id="join-screen" class="bg-gray-800 p-8 rounded-2xl shadow-xl max-w-md mx-auto w-full my-auto space-y-6">
-            
-            <h2 id="screen-title" class="text-xl font-semibold text-center text-gray-200">নতুন মিটিং তৈরি করুন</h2>
-            
-            <div>
-                <label class="block text-xs font-medium text-gray-400 uppercase mb-2">আপনার নাম</label>
-                <input type="text" id="usernameInput" placeholder="যেমন: আব্দুল্লাহ" class="w-full px-4 py-3 bg-gray-700 text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
-            </div>
+    <!-- ========== NAVBAR ========== -->
+    <nav class="navbar">
+        <div class="logo">
+            <i class="fas fa-video"></i> অফিস মিটিং
+        </div>
+        <div class="user-info">
+            <span id="userRoleDisplay" style="color: var(--text-muted); font-size: 0.9rem;">
+                <i class="fas fa-user-tie"></i> বস
+            </span>
+            <div class="avatar" id="userAvatar">ব</div>
+        </div>
+    </nav>
 
-            <div id="admin-box" class="space-y-4 border-t border-gray-700 pt-4">
-                <div>
-                    <label class="block text-xs font-medium text-gray-400 uppercase mb-2">মিটিং বা রুমের নাম</label>
-                    <input type="text" id="roomNameInput" placeholder="যেমন: অফিসিয়াল মিটিং / বন্ধুদের আড্ডা" class="w-full px-4 py-3 bg-gray-700 text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
-                </div>
-                <button id="btnCreateMeeting" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl transition shadow-lg flex items-center justify-center gap-2">
-                    🚀 রুম তৈরি করুন ও লিংক নিন
+    <!-- ========== MAIN ========== -->
+    <div class="main-container">
+
+        <!-- CREATE MEETING SECTION -->
+        <div class="create-meeting-section" id="createMeetingSection">
+            <h2><i class="fas fa-plus-circle" style="color: var(--primary);"></i> নতুন মিটিং তৈরি করুন</h2>
+            <p class="subtitle">একটি মিটিং রুম তৈরি করুন এবং কর্মীদের আমন্ত্রণ জানান</p>
+
+            <div class="create-meeting-form">
+                <input type="text" id="meetingNameInput" placeholder="মিটিং নাম (যেমন: সাপ্তাহিক মিটিং)" />
+                <button class="btn btn-primary" id="createMeetingBtn">
+                    <i class="fas fa-plus"></i> মিটিং তৈরি করুন
                 </button>
             </div>
 
-            <div id="guest-box" class="hidden space-y-4 border-t border-gray-700 pt-4">
-                <div class="bg-gray-700/50 p-3 rounded-xl border border-gray-600 text-sm text-center">
-                    📢 মিটিংয়ের নাম: <span id="invitedRoomName" class="font-bold text-green-400">---</span>
+            <!-- Invite Link Card -->
+            <div class="invite-link-card" id="inviteLinkCard">
+                <div class="link-header">
+                    <h3><i class="fas fa-link"></i> আমন্ত্রণ লিংক</h3>
+                    <span style="font-size:0.8rem; color: var(--text-muted);">
+                        <i class="fas fa-users"></i> <span id="participantCountDisplay">০</span> জন জয়েন করেছেন
+                    </span>
                 </div>
-                <button id="btnJoinMeeting" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-xl transition shadow-lg">
-                    🟢 সরাসরি মিটিংয়ে জয়েন করুন
-                </button>
+                <div class="link-box">
+                    <input type="text" id="inviteLinkInput" readonly />
+                    <button class="btn btn-copy" id="copyLinkBtn"><i class="fas fa-copy"></i> কপি</button>
+                    <button class="btn btn-success" id="joinAsHostBtn"><i class="fas fa-video"></i> মিটিং শুরু</button>
+                    <button class="btn btn-danger" id="endMeetingBtn"><i class="fas fa-times"></i> শেষ</button>
+                </div>
+                <div class="meeting-info">
+                    <div class="info-item"><i class="fas fa-clock"></i> <span id="meetingStatus">অপেক্ষমান</span></div>
+                    <div class="info-item"><i class="fas fa-user-tie"></i> হোস্ট: <span id="hostNameDisplay">আপনি</span></div>
+                    <div class="info-item"><i class="fas fa-hashtag"></i> রুম: <span id="roomIdDisplay">-</span></div>
+                </div>
             </div>
         </div>
 
-        <div id="video-screen" class="hidden flex-1 flex flex-col justify-between space-y-4">
-            
-            <div class="bg-gray-800 px-6 py-3 rounded-xl flex flex-col sm:flex-row justify-between items-center gap-4 shadow-md">
-                <div>
-                    <span class="text-xs text-gray-400 block">রুমের নাম:</span>
-                    <span id="displayRoomName" class="text-white font-bold text-lg">-------</span>
-                </div>
-                
-                <div class="flex items-center gap-2 bg-gray-900 p-1.5 rounded-lg border border-gray-700 w-full sm:w-auto">
-                    <input type="text" id="inviteLinkUrl" readonly class="bg-transparent text-xs text-blue-400 px-2 outline-none font-mono w-48 sm:w-64 select-all">
-                    <button id="btnCopyLink" class="bg-blue-600 hover:bg-blue-700 text-xs px-3 py-1.5 rounded font-bold transition whitespace-nowrap">
-                        📋 লিংক কপি করুন
-                    </button>
-                </div>
-
-                <div id="participant-count" class="bg-green-950 text-green-400 px-4 py-1.5 rounded-full text-xs font-bold border border-green-800 shrink-0">
-                    মেম্বার: ১ জন
-                </div>
+        <!-- VIDEO SECTION -->
+        <div class="video-section" id="videoSection">
+            <div class="section-header">
+                <h2><i class="fas fa-users"></i> মিটিং রুম</h2>
+                <span class="status-badge waiting" id="meetingStatusBadge">
+                    <i class="fas fa-circle"></i> অপেক্ষমান
+                </span>
             </div>
 
-            <div id="video-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 flex-1 items-center justify-center p-4 bg-gray-950 rounded-2xl min-h-[450px] max-h-[650px] overflow-y-auto">
-                </div>
+            <div class="video-grid empty" id="videoGrid">
+                <i class="fas fa-video"></i>
+                <span>কোন মিটিং চলছে না</span>
+                <span style="font-size:0.8rem; opacity:0.5;">উপরে মিটিং তৈরি করুন এবং কর্মীদের আমন্ত্রণ জানান</span>
+            </div>
 
-            <div class="bg-gray-800 p-4 rounded-xl flex justify-center items-center gap-6 shadow-lg">
-                <button id="toggleMic" class="bg-gray-700 hover:bg-gray-600 p-4 rounded-full transition text-lg" title="Mute/Unmute">🎤</button>
-                <button id="toggleCam" class="bg-gray-700 hover:bg-gray-600 p-4 rounded-full transition text-lg" title="Camera On/Off">📷</button>
-                <button id="btnLeave" class="bg-red-600 hover:bg-red-700 px-6 py-3 rounded-xl font-bold transition shadow-md">
-                    মিটিং থেকে বের হন
-                </button>
+            <!-- Controls -->
+            <div class="controls-bar">
+                <button class="btn btn-mic" id="micBtn" disabled><i class="fas fa-microphone"></i></button>
+                <button class="btn btn-cam" id="camBtn" disabled><i class="fas fa-video"></i></button>
+                <button class="btn btn-screen" id="screenBtn" disabled><i class="fas fa-desktop"></i></button>
+                <button class="btn btn-danger" id="leaveBtn" disabled><i class="fas fa-phone-slash"></i></button>
             </div>
         </div>
-
-        <footer class="text-center text-xs text-gray-600 mt-4">
-            &copy; 2026 Flawless Platform. Powered by Firebase & VideoSDK.
-        </footer>
     </div>
 
+    <!-- ========== FIREBASE ========== -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js">
+    </script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js">
+    </script>
+
     <script>
-        // ১. আপনার দেওয়া Firebase Config
+        // ============================================================
+        //  FIREBASE CONFIG
+        // ============================================================
         const firebaseConfig = {
             apiKey: "AIzaSyBCpqt6OVooTsN__jWBlqbphaSVfkZDjR0",
             authDomain: "flawless-parity-486609-t3.firebaseapp.com",
@@ -98,227 +704,860 @@
             appId: "1:121220208254:web:bae0698f231f0881da6a2f",
             measurementId: "G-TY1D29X4JL"
         };
-        
+
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
 
-        // VideoSDK টেম্পোরারি ডেভলপমেন্ট টোকেন
-        const VIDEOSDK_TOKEN = "TEMPORARY_DEVELOPMENT_TOKEN"; 
+        // ============================================================
+        //  DOM REFS
+        // ============================================================
+        const meetingNameInput = document.getElementById('meetingNameInput');
+        const createMeetingBtn = document.getElementById('createMeetingBtn');
+        const inviteLinkCard = document.getElementById('inviteLinkCard');
+        const inviteLinkInput = document.getElementById('inviteLinkInput');
+        const copyLinkBtn = document.getElementById('copyLinkBtn');
+        const joinAsHostBtn = document.getElementById('joinAsHostBtn');
+        const endMeetingBtn = document.getElementById('endMeetingBtn');
+        const videoGrid = document.getElementById('videoGrid');
+        const micBtn = document.getElementById('micBtn');
+        const camBtn = document.getElementById('camBtn');
+        const screenBtn = document.getElementById('screenBtn');
+        const leaveBtn = document.getElementById('leaveBtn');
+        const participantCountDisplay = document.getElementById('participantCountDisplay');
+        const meetingStatus = document.getElementById('meetingStatus');
+        const meetingStatusBadge = document.getElementById('meetingStatusBadge');
+        const hostNameDisplay = document.getElementById('hostNameDisplay');
+        const roomIdDisplay = document.getElementById('roomIdDisplay');
+        const userRoleDisplay = document.getElementById('userRoleDisplay');
+        const userAvatar = document.getElementById('userAvatar');
 
-        let meeting = null;
-        let isMicOn = true;
-        let isCamOn = true;
-        let targetMeetingId = null;
+        // ============================================================
+        //  STATE
+        // ============================================================
+        let currentRoomId = null;
+        let currentMeetingName = '';
+        let userId = null;
+        let isHost = false;
+        let isInMeeting = false;
+        let localStream = null;
+        let localScreenStream = null;
+        let isMicMuted = false;
+        let isCamOff = false;
+        let isScreenSharing = false;
+        let peerConnections = {};
+        let participantsRef = null;
+        let signalsRef = null;
+        let roomRef = null;
+        let localVideoElement = null;
+        let userName = '';
 
-        // DOM Elements
-        const joinScreen = document.getElementById("join-screen");
-        const videoScreen = document.getElementById("video-screen");
-        const videoGrid = document.getElementById("video-grid");
-        const usernameInput = document.getElementById("usernameInput");
-        const roomNameInput = document.getElementById("roomNameInput");
-        const displayRoomName = document.getElementById("displayRoomName");
-        const inviteLinkUrl = document.getElementById("inviteLinkUrl");
-        const participantCount = document.getElementById("participant-count");
-        const screenTitle = document.getElementById("screen-title");
-        const adminBox = document.getElementById("admin-box");
-        const guestBox = document.getElementById("guest-box");
-        const invitedRoomName = document.getElementById("invitedRoomName");
+        const rtcConfig = {
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' },
+                { urls: 'stun:stun2.l.google.com:19302' },
+            ]
+        };
 
-        // ২. URL থেকে অটোমেটিক 'মিটিং আইডি' চেক করা (ইনভাইট লিংকের লজিক)
-        const urlParams = new URLSearchParams(window.location.search);
-        const urlRoomId = urlParams.get('room');
+        // ============================================================
+        //  TOAST HELPER
+        // ============================================================
+        function showToast(msg, duration = 3000) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.style.display = 'block';
+            clearTimeout(toast._timer);
+            toast._timer = setTimeout(() => {
+                toast.style.display = 'none';
+            }, duration);
+        }
 
-        if (urlRoomId) {
-            // যদি লিংকে 'room' আইডি থাকে, তবে ইন্টারফেস গেস্ট মোডে বদলে যাবে
-            targetMeetingId = urlRoomId;
-            screenTitle.innerText = "আমন্ত্রিত মিটিংয়ে যোগ দিন";
-            adminBox.classList.add("hidden");
-            guestBox.classList.remove("hidden");
+        // ============================================================
+        //  GENERATE USER ID
+        // ============================================================
+        function generateUserId() {
+            return 'user_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 6);
+        }
 
-            // ফায়ারবেস থেকে ওই রুমের নাম কুড়িয়ে আনা
-            database.ref('smart_meetings/' + targetMeetingId).once('value').then((snapshot) => {
-                if (snapshot.exists()) {
-                    invitedRoomName.innerText = snapshot.val().roomName;
-                } else {
-                    alert("দুঃখিত, এই ইনভাইট লিংকটির মেয়াদ শেষ হয়ে গেছে বা রুমটি মুছে ফেলা হয়েছে।");
-                    window.location.href = window.location.pathname; // রিসেট টু নরমাল ইউআরএল
+        // ============================================================
+        //  GENERATE ROOM ID
+        // ============================================================
+        function generateRoomId() {
+            return 'room_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 6);
+        }
+
+        // ============================================================
+        //  GET LOCAL MEDIA
+        // ============================================================
+        async function getLocalMedia() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { width: { ideal: 640 }, height: { ideal: 480 } },
+                    audio: { echoCancellation: true, noiseSuppression: true }
+                });
+                return stream;
+            } catch (err) {
+                console.error('Media error:', err);
+                throw err;
+            }
+        }
+
+        // ============================================================
+        //  CREATE VIDEO ELEMENT
+        // ============================================================
+        function createVideoElement(uid, name, isLocal = false, role = '') {
+            videoGrid.classList.remove('empty');
+            videoGrid.innerHTML = '';
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'video-item';
+            wrapper.id = `video-${uid}`;
+
+            const video = document.createElement('video');
+            video.autoplay = true;
+            video.playsInline = true;
+            video.muted = isLocal;
+
+            const label = document.createElement('div');
+            label.className = 'video-label';
+            const displayName = isLocal ? 'আপনি' : (name || uid.substring(0, 12));
+            label.innerHTML = `${displayName} ${role ? `<span class="role-badge">${role}</span>` : ''}`;
+
+            const muteInd = document.createElement('div');
+            muteInd.className = 'mute-indicator';
+            muteInd.id = `mute-ind-${uid}`;
+            muteInd.innerHTML = '<i class="fas fa-microphone-slash"></i> মিউট';
+
+            wrapper.appendChild(video);
+            wrapper.appendChild(label);
+            wrapper.appendChild(muteInd);
+
+            if (isLocal) {
+                localVideoElement = video;
+            }
+
+            videoGrid.appendChild(wrapper);
+            return { wrapper, video, label, muteInd };
+        }
+
+        // ============================================================
+        //  REMOVE VIDEO ELEMENT
+        // ============================================================
+        function removeVideoElement(uid) {
+            const el = document.getElementById(`video-${uid}`);
+            if (el) {
+                const video = el.querySelector('video');
+                if (video && video.srcObject) {
+                    video.srcObject.getTracks().forEach(t => t.stop());
                 }
+                el.remove();
+            }
+
+            if (videoGrid.children.length === 0) {
+                videoGrid.classList.add('empty');
+                videoGrid.innerHTML = `
+                    <i class="fas fa-video"></i>
+                    <span>কোন মিটিং চলছে না</span>
+                    <span style="font-size:0.8rem; opacity:0.5;">উপরে মিটিং তৈরি করুন এবং কর্মীদের আমন্ত্রণ জানান</span>
+                `;
+            }
+        }
+
+        // ============================================================
+        //  SIGNALING
+        // ============================================================
+        function sendSignal(targetId, signal) {
+            if (!currentRoomId || !userId) return;
+            const signalRef = database.ref(`meetings/${currentRoomId}/signals/${targetId}`);
+            signalRef.push({
+                from: userId,
+                signal: signal,
+                timestamp: firebase.database.ServerValue.TIMESTAMP
             });
         }
 
-        // ৩. এডমিন কর্তৃক কাস্টম নাম দিয়ে নতুন রুম তৈরি করা
-        document.getElementById("btnCreateMeeting").addEventListener("click", async () => {
-            const adminName = usernameInput.value.trim();
-            const roomName = roomNameInput.value.trim();
+        // ============================================================
+        //  CREATE PEER CONNECTION
+        // ============================================================
+        function createPeerConnection(peerId, isOfferer = false) {
+            const pc = new RTCPeerConnection(rtcConfig);
 
-            if (!adminName || !roomName) {
-                alert("দয়া করে আপনার নাম এবং একটি সুন্দর রুমের নাম লিখুন!");
-                return;
+            if (localStream) {
+                localStream.getTracks().forEach(track => {
+                    pc.addTrack(track, localStream);
+                });
             }
 
-            // VideoSDK সার্ভার থেকে রুম আইডি তৈরি
-            const url = `https://api.videosdk.live/v2/rooms`;
-            const options = {
-                method: "POST",
-                headers: { Authorization: VIDEOSDK_TOKEN, "Content-Type": "application/json" },
+            pc.ontrack = (event) => {
+                const [stream] = event.streams;
+                let videoWrapper = document.getElementById(`video-${peerId}`);
+                if (!videoWrapper) {
+                    // Get participant name from Firebase
+                    database.ref(`meetings/${currentRoomId}/participants/${peerId}/name`).once('value')
+                        .then(snap => {
+                            const name = snap.val() || peerId.substring(0, 12);
+                            const role = peerId === userId ? 'হোস্ট' : '';
+                            const { wrapper, video } = createVideoElement(peerId, name, false, role);
+                            video.srcObject = stream;
+                        });
+                } else {
+                    const video = videoWrapper.querySelector('video');
+                    if (video) video.srcObject = stream;
+                }
             };
 
-            let meetingId = "room-" + Math.random().toString(36).substring(2, 7); // Fallback ID
-
-            try {
-                const response = await fetch(url, options);
-                if(response.ok) {
-                    const data = await response.json();
-                    meetingId = data.roomId;
+            pc.onicecandidate = (event) => {
+                if (event.candidate) {
+                    sendSignal(peerId, {
+                        type: 'candidate',
+                        candidate: event.candidate
+                    });
                 }
-            } catch (e) {
-                console.log("Using dynamic generated fallback room ID");
+            };
+
+            pc.onconnectionstatechange = () => {
+                if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed') {
+                    removeVideoElement(peerId);
+                    delete peerConnections[peerId];
+                    if (signalsRef) {
+                        signalsRef.child(peerId).remove();
+                    }
+                    updateParticipantCount();
+                }
+            };
+
+            peerConnections[peerId] = pc;
+
+            if (isOfferer) {
+                pc.createOffer()
+                    .then(offer => pc.setLocalDescription(offer))
+                    .then(() => {
+                        sendSignal(peerId, {
+                            type: 'offer',
+                            sdp: pc.localDescription
+                        });
+                    })
+                    .catch(err => console.error('Offer error:', err));
             }
 
-            // ফায়ারবেস ডেটাবেজে রুমের নাম ও হোস্টের বিবরণ জমা রাখা
-            database.ref('smart_meetings/' + meetingId).set({
-                roomName: roomName,
-                hostName: adminName,
-                createdAt: Date.now()
-            });
+            return pc;
+        }
 
-            startMeeting(meetingId, adminName, roomName);
-        });
-
-        // ৪. ইনভাইট লিংকে ক্লিক করে আসা গেস্টের সরাসরি জয়েন করা
-        document.getElementById("btnJoinMeeting").addEventListener("click", () => {
-            const guestName = usernameInput.value.trim();
-            if (!guestName) {
-                alert("মিটিংয়ে যোগ দিতে দয়া করে আপনার নাম লিখুন!");
+        // ============================================================
+        //  HANDLE SIGNALS
+        // ============================================================
+        function handleSignal(peerId, signalData) {
+            const pc = peerConnections[peerId];
+            if (!pc) {
+                if (signalData.signal.type === 'offer') {
+                    createPeerConnection(peerId, false);
+                    setTimeout(() => handleSignal(peerId, signalData), 100);
+                }
                 return;
             }
-            
-            const rName = invitedRoomName.innerText;
-            startMeeting(targetMeetingId, guestName, rName);
-        });
 
-        // ৫. মূল মিটিং ইঞ্জিন চালু করা
-        function startMeeting(meetingId, userDisplayName, roomName) {
-            joinScreen.classList.add("hidden");
-            videoScreen.classList.remove("hidden");
-            
-            displayRoomName.innerText = roomName;
-            
-            // ইনভাইট লিংক জেনারেট করা (বর্তমান ডোমেইন + মিটিং আইডি)
-            const generatedInviteLink = `${window.location.origin}${window.location.pathname}?room=${meetingId}`;
-            inviteLinkUrl.value = generatedInviteLink;
+            const signal = signalData.signal;
 
-            // VideoSDK কনফিগারেশন
-            window.VideoSDK.config(VIDEOSDK_TOKEN);
-            meeting = window.VideoSDK.initMeeting({
-                meetingId: meetingId,
-                name: userDisplayName,
-                micEnabled: true,
-                webcamEnabled: true,
-                maxResolution: "sd" // ৫০ জনের ডাটা ও ব্রাউজার সেভ রাখতে এসডি কোয়ালিটি বেস্ট
-            });
+            if (signal.type === 'offer') {
+                pc.setRemoteDescription(new RTCSessionDescription(signal.sdp))
+                    .then(() => pc.createAnswer())
+                    .then(answer => pc.setLocalDescription(answer))
+                    .then(() => {
+                        sendSignal(peerId, {
+                            type: 'answer',
+                            sdp: pc.localDescription
+                        });
+                    })
+                    .catch(err => console.error('Answer error:', err));
+            } else if (signal.type === 'answer') {
+                pc.setRemoteDescription(new RTCSessionDescription(signal.sdp))
+                    .catch(err => console.error('Set remote desc error:', err));
+            } else if (signal.type === 'candidate') {
+                if (signal.candidate) {
+                    pc.addIceCandidate(new RTCIceCandidate(signal.candidate))
+                        .catch(err => console.error('Add ICE error:', err));
+                }
+            }
+        }
 
-            meeting.join();
-
-            // ইভেন্ট: নতুন কেউ জয়েন করলে ভিডিও তৈরি করা
-            meeting.on("participant-joined", (participant) => {
-                createVideoElement(participant);
-                updateCount();
-            });
-
-            // ইভেন্ট: কেউ লিভ নিলে গ্রিড থেকে বাদ দেওয়া
-            meeting.on("participant-left", (participant) => {
-                document.getElementById(`v-${participant.id}`)?.remove();
-                updateCount();
-            });
-
-            // নিজের ভিডিও কানেক্ট হওয়া
-            meeting.on("meeting-joined", () => {
-                createVideoElement(meeting.localParticipant);
-                updateCount();
+        // ============================================================
+        //  UPDATE PARTICIPANT COUNT
+        // ============================================================
+        function updateParticipantCount() {
+            if (!participantsRef) return;
+            participantsRef.once('value', (snapshot) => {
+                const count = snapshot.numChildren() || 0;
+                participantCountDisplay.textContent = count;
             });
         }
 
-        // ৬. স্ক্রিনে ভিডিও বক্স তৈরি করা
-        function createVideoElement(participant) {
-            let box = document.createElement("div");
-            box.setAttribute("id", `v-${participant.id}`);
-            box.className = "bg-gray-800 rounded-xl p-2 relative aspect-video flex flex-col items-center justify-center border border-gray-700 shadow-md";
+        // ============================================================
+        //  UPDATE MEETING STATUS
+        // ============================================================
+        function updateMeetingStatus(status) {
+            const statusMap = {
+                'waiting': { text: 'অপেক্ষমান', class: 'waiting' },
+                'live': { text: 'লাইভ', class: 'live' },
+                'ended': { text: 'শেষ', class: 'ended' }
+            };
+            const s = statusMap[status] || statusMap.waiting;
+            meetingStatus.textContent = s.text;
+            meetingStatusBadge.className = `status-badge ${s.class}`;
+            meetingStatusBadge.innerHTML = `<i class="fas fa-circle"></i> ${s.text}`;
+        }
 
-            let video = document.createElement("video");
-            video.setAttribute("id", `video-${participant.id}`);
-            video.setAttribute("playsinline", true);
-            video.setAttribute("autoplay", true);
-            video.className = "w-full h-full object-cover rounded-lg bg-black";
+        // ============================================================
+        //  CREATE MEETING
+        // ============================================================
+        async function createMeeting() {
+            const meetingName = meetingNameInput.value.trim() || 'অফিস মিটিং';
+            currentMeetingName = meetingName;
 
-            let tag = document.createElement("div");
-            tag.className = "absolute bottom-3 left-3 bg-black/70 px-2.5 py-1 rounded-md text-xs font-semibold backdrop-blur-sm";
-            tag.innerText = participant.displayName;
+            // Generate room ID
+            currentRoomId = generateRoomId();
+            userId = generateUserId();
+            isHost = true;
 
-            box.appendChild(video);
-            box.appendChild(tag);
-            videoGrid.appendChild(box);
+            // Setup Firebase refs
+            roomRef = database.ref(`meetings/${currentRoomId}`);
+            participantsRef = roomRef.child('participants');
+            signalsRef = roomRef.child('signals');
 
-            // ট্র্যাকিং অন-স্ট্রিম মিডিয়া
-            participant.on("stream-enabled", (stream) => {
-                if (stream.kind === "video") {
-                    const mediaStream = new MediaStream();
-                    mediaStream.addTrack(stream.track);
-                    video.srcObject = mediaStream;
+            // Save meeting info
+            await roomRef.set({
+                name: meetingName,
+                hostId: userId,
+                createdAt: firebase.database.ServerValue.TIMESTAMP,
+                status: 'waiting'
+            });
+
+            // Add host to participants
+            await participantsRef.child(userId).set({
+                name: 'বস',
+                role: 'host',
+                joinedAt: firebase.database.ServerValue.TIMESTAMP
+            });
+
+            // Generate invite link
+            const inviteLink = `${window.location.origin}${window.location.pathname}?room=${currentRoomId}`;
+            inviteLinkInput.value = inviteLink;
+            inviteLinkCard.classList.add('show');
+
+            roomIdDisplay.textContent = currentRoomId;
+            hostNameDisplay.textContent = 'বস (আপনি)';
+            userRoleDisplay.innerHTML = '<i class="fas fa-user-tie"></i> বস (হোস্ট)';
+            userAvatar.textContent = 'ব';
+
+            updateMeetingStatus('waiting');
+            updateParticipantCount();
+
+            showToast(`✅ মিটিং তৈরি হয়েছে: ${meetingName}`);
+
+            // Enable join button
+            joinAsHostBtn.disabled = false;
+            createMeetingBtn.disabled = true;
+            meetingNameInput.disabled = true;
+
+            // Listen for participants
+            participantsRef.on('child_added', (snapshot) => {
+                const peerId = snapshot.key;
+                if (peerId === userId) return;
+                const data = snapshot.val();
+                if (!peerConnections[peerId]) {
+                    createPeerConnection(peerId, true);
+                    showToast(`👤 ${data.name || 'কর্মী'} জয়েন করেছেন!`);
+                }
+                updateParticipantCount();
+            });
+
+            participantsRef.on('child_removed', (snapshot) => {
+                const peerId = snapshot.key;
+                if (peerId === userId) return;
+                removeVideoElement(peerId);
+                if (peerConnections[peerId]) {
+                    peerConnections[peerId].close();
+                    delete peerConnections[peerId];
+                }
+                updateParticipantCount();
+                showToast(`👤 একজন কর্মী লিভ করেছেন।`);
+            });
+
+            // Signals listener
+            signalsRef.on('child_added', (snapshot) => {
+                const peerId = snapshot.key;
+                if (peerId === userId) return;
+                snapshot.ref.on('child_added', (signalSnapshot) => {
+                    const data = signalSnapshot.val();
+                    if (data.from === userId) return;
+                    handleSignal(peerId, data);
+                });
+            });
+
+            // Update status if meeting ends
+            roomRef.on('child_changed', (snapshot) => {
+                if (snapshot.key === 'status') {
+                    const status = snapshot.val();
+                    updateMeetingStatus(status);
+                    if (status === 'ended') {
+                        showToast('মিটিং শেষ হয়েছে।');
+                        leaveMeeting();
+                    }
                 }
             });
+
+            // Auto-cleanup on disconnect
+            roomRef.onDisconnect().update({
+                [`participants/${userId}`]: null
+            });
         }
 
-        function updateCount() {
-            if (meeting) {
-                const total = meeting.participants.size + 1;
-                participantCount.innerText = `মেম্বার: ${total} জন`;
+        // ============================================================
+        //  JOIN MEETING (for employees)
+        // ============================================================
+        async function joinMeeting(roomId) {
+            if (isInMeeting) {
+                showToast('আপনি ইতিমধ্যে মিটিংয়ে আছেন!');
+                return;
+            }
+
+            currentRoomId = roomId;
+            userId = generateUserId();
+            isHost = false;
+
+            // Check if meeting exists
+            const roomSnap = await database.ref(`meetings/${currentRoomId}`).once('value');
+            if (!roomSnap.exists()) {
+                showToast('❌ এই মিটিংটি বিদ্যমান নেই!');
+                return;
+            }
+
+            const roomData = roomSnap.val();
+            if (roomData.status === 'ended') {
+                showToast('❌ এই মিটিংটি ইতিমধ্যে শেষ হয়েছে!');
+                return;
+            }
+
+            currentMeetingName = roomData.name || 'অফিস মিটিং';
+
+            // Setup Firebase refs
+            roomRef = database.ref(`meetings/${currentRoomId}`);
+            participantsRef = roomRef.child('participants');
+            signalsRef = roomRef.child('signals');
+
+            // Get user name
+            userName = prompt('আপনার নাম দিন:', 'কর্মী') || 'কর্মী';
+
+            // Add to participants
+            await participantsRef.child(userId).set({
+                name: userName,
+                role: 'employee',
+                joinedAt: firebase.database.ServerValue.TIMESTAMP
+            });
+
+            // Update UI
+            roomIdDisplay.textContent = currentRoomId;
+            hostNameDisplay.textContent = roomData.hostId || 'বস';
+            userRoleDisplay.innerHTML = `<i class="fas fa-user"></i> ${userName} (কর্মী)`;
+            userAvatar.textContent = userName.charAt(0).toUpperCase();
+
+            inviteLinkCard.classList.add('show');
+            inviteLinkInput.value = window.location.href;
+            createMeetingBtn.disabled = true;
+            meetingNameInput.disabled = true;
+
+            updateMeetingStatus(roomData.status || 'waiting');
+
+            showToast(`✅ মিটিংয়ে জয়েন করেছেন: ${currentMeetingName}`);
+
+            // Listen for participants
+            participantsRef.on('child_added', (snapshot) => {
+                const peerId = snapshot.key;
+                if (peerId === userId) return;
+                const data = snapshot.val();
+                if (!peerConnections[peerId]) {
+                    createPeerConnection(peerId, false);
+                }
+                updateParticipantCount();
+            });
+
+            participantsRef.on('child_removed', (snapshot) => {
+                const peerId = snapshot.key;
+                if (peerId === userId) return;
+                removeVideoElement(peerId);
+                if (peerConnections[peerId]) {
+                    peerConnections[peerId].close();
+                    delete peerConnections[peerId];
+                }
+                updateParticipantCount();
+            });
+
+            signalsRef.on('child_added', (snapshot) => {
+                const peerId = snapshot.key;
+                if (peerId === userId) return;
+                snapshot.ref.on('child_added', (signalSnapshot) => {
+                    const data = signalSnapshot.val();
+                    if (data.from === userId) return;
+                    handleSignal(peerId, data);
+                });
+            });
+
+            roomRef.on('child_changed', (snapshot) => {
+                if (snapshot.key === 'status') {
+                    const status = snapshot.val();
+                    updateMeetingStatus(status);
+                    if (status === 'ended') {
+                        showToast('মিটিং শেষ হয়েছে।');
+                        leaveMeeting();
+                    }
+                }
+            });
+
+            roomRef.onDisconnect().update({
+                [`participants/${userId}`]: null
+            });
+
+            // Auto-join after setting up listeners
+            await startLocalStream();
+
+            joinAsHostBtn.disabled = true;
+            endMeetingBtn.style.display = isHost ? 'inline-flex' : 'none';
+        }
+
+        // ============================================================
+        //  START LOCAL STREAM
+        // ============================================================
+        async function startLocalStream() {
+            try {
+                localStream = await getLocalMedia();
+                const { video } = createVideoElement(userId, isHost ? 'বস' : userName, true, isHost ? 'হোস্ট' : '');
+                video.srcObject = localStream;
+
+                isInMeeting = true;
+                micBtn.disabled = false;
+                camBtn.disabled = false;
+                screenBtn.disabled = false;
+                leaveBtn.disabled = false;
+
+                if (isHost) {
+                    await roomRef.update({ status: 'live' });
+                    updateMeetingStatus('live');
+                }
+
+                updateUIButtons();
+                showToast('🎥 ভিডিও স্ট্রিম শুরু হয়েছে!');
+
+                // Connect to existing participants
+                participantsRef.once('value', (snapshot) => {
+                    snapshot.forEach((child) => {
+                        const peerId = child.key;
+                        if (peerId !== userId && !peerConnections[peerId]) {
+                            createPeerConnection(peerId, isHost);
+                        }
+                    });
+                });
+
+            } catch (err) {
+                console.error('Stream error:', err);
+                showToast('❌ ক্যামেরা/মাইক অ্যাক্সেস করতে ব্যর্থ!');
             }
         }
 
-        // ৭. ইনভাইট লিংক এক ক্লিকে কপি করার লজিক
-        document.getElementById("btnCopyLink").addEventListener("click", () => {
-            inviteLinkUrl.select();
-            inviteLinkUrl.setSelectionRange(0, 99999); // মোবাইল ডিভাইসের জন্য
-            navigator.clipboard.writeText(inviteLinkUrl.value);
-            
-            const btn = document.getElementById("btnCopyLink");
-            btn.innerText = "✅ কপি হয়েছে!";
-            btn.classList.replace("bg-blue-600", "bg-green-600");
-            
-            setTimeout(() => {
-                btn.innerText = "📋 লিংক কপি করুন";
-                btn.classList.replace("bg-green-600", "bg-blue-600");
-            }, 2000);
-        });
-
-        // ৮. মিউট/ক্যামেরা/লিভ বাটন হ্যান্ডলিং
-        document.getElementById("toggleMic").addEventListener("click", () => {
-            if (isMicOn) {
-                meeting?.muteMic();
-                document.getElementById("toggleMic").classList.replace("bg-gray-700", "bg-red-500");
-            } else {
-                meeting?.unmuteMic();
-                document.getElementById("toggleMic").classList.replace("bg-red-500", "bg-gray-700");
+        // ============================================================
+        //  LEAVE MEETING
+        // ============================================================
+        function leaveMeeting() {
+            // Remove local video
+            if (userId) {
+                removeVideoElement(userId);
             }
-            isMicOn = !isMicOn;
-        });
 
-        document.getElementById("toggleCam").addEventListener("click", () => {
-            if (isCamOn) {
-                meeting?.disableWebcam();
-                document.getElementById("toggleCam").classList.replace("bg-gray-700", "bg-red-500");
-            } else {
-                meeting?.enableWebcam();
-                document.getElementById("toggleCam").classList.replace("bg-red-500", "bg-gray-700");
+            // Close all peer connections
+            Object.keys(peerConnections).forEach(key => {
+                try {
+                    peerConnections[key].close();
+                } catch (e) {}
+                delete peerConnections[key];
+            });
+
+            // Remove from Firebase
+            if (participantsRef && userId) {
+                try {
+                    participantsRef.child(userId).remove();
+                } catch (e) {}
             }
-            isCamOn = !isCamOn;
+
+            if (signalsRef) {
+                try {
+                    signalsRef.off();
+                } catch (e) {}
+            }
+            if (participantsRef) {
+                try {
+                    participantsRef.off();
+                } catch (e) {}
+            }
+            if (roomRef) {
+                try {
+                    roomRef.off();
+                } catch (e) {}
+            }
+
+            // Stop streams
+            if (localStream) {
+                localStream.getTracks().forEach(t => t.stop());
+                localStream = null;
+            }
+            if (localScreenStream) {
+                localScreenStream.getTracks().forEach(t => t.stop());
+                localScreenStream = null;
+            }
+
+            // If host, end meeting
+            if (isHost && currentRoomId) {
+                database.ref(`meetings/${currentRoomId}/status`).set('ended');
+            }
+
+            isInMeeting = false;
+            isScreenSharing = false;
+            userId = null;
+
+            micBtn.disabled = true;
+            camBtn.disabled = true;
+            screenBtn.disabled = true;
+            leaveBtn.disabled = true;
+
+            joinAsHostBtn.disabled = false;
+            createMeetingBtn.disabled = false;
+            meetingNameInput.disabled = false;
+
+            updateMeetingStatus('ended');
+            updateParticipantCount();
+
+            showToast('📴 মিটিং থেকে লিভ করেছেন।');
+            updateUIButtons();
+        }
+
+        // ============================================================
+        //  TOGGLE MIC
+        // ============================================================
+        function toggleMic() {
+            if (!localStream) return;
+            const audioTracks = localStream.getAudioTracks();
+            if (audioTracks.length === 0) return;
+            isMicMuted = !isMicMuted;
+            audioTracks.forEach(track => track.enabled = !isMicMuted);
+            updateUIButtons();
+
+            const muteInd = document.getElementById(`mute-ind-${userId}`);
+            if (muteInd) {
+                if (isMicMuted) {
+                    muteInd.classList.add('show');
+                } else {
+                    muteInd.classList.remove('show');
+                }
+            }
+        }
+
+        // ============================================================
+        //  TOGGLE CAM
+        // ============================================================
+        function toggleCam() {
+            if (!localStream) return;
+            const videoTracks = localStream.getVideoTracks();
+            if (videoTracks.length === 0) return;
+            isCamOff = !isCamOff;
+            videoTracks.forEach(track => track.enabled = !isCamOff);
+            updateUIButtons();
+        }
+
+        // ============================================================
+        //  TOGGLE SCREEN SHARE
+        // ============================================================
+        async function toggleScreenShare() {
+            if (!isInMeeting) {
+                showToast('প্রথমে মিটিংয়ে জয়েন করুন!');
+                return;
+            }
+
+            if (isScreenSharing) {
+                if (localScreenStream) {
+                    localScreenStream.getTracks().forEach(t => t.stop());
+                    localScreenStream = null;
+                }
+                isScreenSharing = false;
+
+                if (localStream) {
+                    const videoTrack = localStream.getVideoTracks()[0];
+                    if (videoTrack) {
+                        Object.values(peerConnections).forEach(pc => {
+                            const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
+                            if (sender) {
+                                sender.replaceTrack(videoTrack);
+                            }
+                        });
+                    }
+                    if (localVideoElement) {
+                        localVideoElement.srcObject = localStream;
+                    }
+                }
+                showToast('স্ক্রিন শেয়ার বন্ধ করা হয়েছে।');
+                updateUIButtons();
+                return;
+            }
+
+            try {
+                const screenStream = await navigator.mediaDevices.getDisplayMedia({
+                    video: true,
+                    audio: false
+                });
+
+                localScreenStream = screenStream;
+                isScreenSharing = true;
+
+                const videoTrack = screenStream.getVideoTracks()[0];
+                if (videoTrack) {
+                    Object.values(peerConnections).forEach(pc => {
+                        const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
+                        if (sender) {
+                            sender.replaceTrack(videoTrack);
+                        }
+                    });
+
+                    if (localVideoElement) {
+                        localVideoElement.srcObject = screenStream;
+                    }
+
+                    videoTrack.onended = () => {
+                        if (isScreenSharing) {
+                            toggleScreenShare();
+                        }
+                    };
+                }
+
+                showToast('🖥️ স্ক্রিন শেয়ার শুরু হয়েছে!');
+                updateUIButtons();
+
+            } catch (err) {
+                console.error('Screen share error:', err);
+                showToast('স্ক্রিন শেয়ার করতে ব্যর্থ!');
+            }
+        }
+
+        // ============================================================
+        //  UPDATE UI BUTTONS
+        // ============================================================
+        function updateUIButtons() {
+            if (isMicMuted) {
+                micBtn.classList.add('muted');
+                micBtn.innerHTML = '<i class="fas fa-microphone-slash"></i>';
+            } else {
+                micBtn.classList.remove('muted');
+                micBtn.innerHTML = '<i class="fas fa-microphone"></i>';
+            }
+
+            if (isCamOff) {
+                camBtn.classList.add('off');
+                camBtn.innerHTML = '<i class="fas fa-video-slash"></i>';
+            } else {
+                camBtn.classList.remove('off');
+                camBtn.innerHTML = '<i class="fas fa-video"></i>';
+            }
+
+            if (isScreenSharing) {
+                screenBtn.classList.add('active');
+                screenBtn.innerHTML = '<i class="fas fa-desktop"></i> বন্ধ';
+            } else {
+                screenBtn.classList.remove('active');
+                screenBtn.innerHTML = '<i class="fas fa-desktop"></i>';
+            }
+        }
+
+        // ============================================================
+        //  COPY LINK
+        // ============================================================
+        function copyLink() {
+            inviteLinkInput.select();
+            document.execCommand('copy');
+            showToast('📋 লিংক কপি করা হয়েছে!');
+        }
+
+        // ============================================================
+        //  END MEETING (Host only)
+        // ============================================================
+        function endMeeting() {
+            if (!isHost) {
+                showToast('শুধুমাত্র হোস্ট মিটিং শেষ করতে পারেন!');
+                return;
+            }
+            if (confirm('আপনি কি নিশ্চিত যে মিটিংটি শেষ করতে চান?')) {
+                if (roomRef) {
+                    roomRef.update({ status: 'ended' });
+                }
+                leaveMeeting();
+                showToast('🏁 মিটিং শেষ হয়েছে।');
+            }
+        }
+
+        // ============================================================
+        //  CHECK URL PARAMETERS FOR ROOM JOIN
+        // ============================================================
+        function checkUrlForRoom() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const roomId = urlParams.get('room');
+            if (roomId) {
+                // This is an employee joining via invite link
+                setTimeout(() => {
+                    joinMeeting(roomId);
+                }, 500);
+            }
+        }
+
+        // ============================================================
+        //  EVENT LISTENERS
+        // ============================================================
+        createMeetingBtn.addEventListener('click', createMeeting);
+        joinAsHostBtn.addEventListener('click', async () => {
+            if (currentRoomId) {
+                await startLocalStream();
+            }
+        });
+        endMeetingBtn.addEventListener('click', endMeeting);
+        copyLinkBtn.addEventListener('click', copyLink);
+        micBtn.addEventListener('click', toggleMic);
+        camBtn.addEventListener('click', toggleCam);
+        screenBtn.addEventListener('click', toggleScreenShare);
+        leaveBtn.addEventListener('click', leaveMeeting);
+
+        // Enter key on meeting name
+        meetingNameInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') createMeeting();
         });
 
-        document.getElementById("btnLeave").addEventListener("click", () => {
-            meeting?.leave();
-            location.reload();
-        });
+        // ============================================================
+        //  INIT
+        // ============================================================
+        console.log('🏢 অফিস মিটিং অ্যাপ্লিকেশন রেডি!');
+        console.log('👨‍💼 বস মিটিং তৈরি করবে, কর্মীরা লিংকে ক্লিক করে জয়েন করবে।');
+
+        // Check browser support
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            showToast('❌ আপনার ব্রাউজার WebRTC সাপোর্ট করে না!', 5000);
+        }
+
+        // Check for HTTPS
+        const isSecure = window.location.protocol === 'https:' ||
+            window.location.hostname === 'localhost' ||
+            window.location.hostname === '127.0.0.1';
+
+        if (!isSecure) {
+            showToast('⚠️ নিরাপদ সংযোগ প্রয়োজন! HTTPS বা localhost ব্যবহার করুন।', 5000);
+        }
+
+        // Check URL for room join
+        checkUrlForRoom();
+
+        // Hide end meeting button initially
+        endMeetingBtn.style.display = 'none';
     </script>
 </body>
 </html>
