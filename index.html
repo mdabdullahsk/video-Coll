@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flawless Smart Meeting Room</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+    
+    <script src="https://sdk.videosdk.live/js-sdk/0.0.83/videosdk.js"></script>
+</head>
+<body class="bg-gray-900 text-white font-sans antialiased">
+
+    <div class="container mx-auto max-w-5xl p-4 min-h-screen flex flex-col justify-between">
+        
+        <header class="text-center my-4">
+            <h1 class="text-3xl font-extrabold tracking-tight text-blue-500">Flawless Meeting Platform</h1>
+            <p class="text-gray-400 text-sm mt-1">কাস্টম রুম এবং ইনস্ট্যান্ট ইনভাইট লিংক ফিচারসহ</p>
+        </header>
+
+        <div id="join-screen" class="bg-gray-800 p-8 rounded-2xl shadow-xl max-w-md mx-auto w-full my-auto space-y-6">
+            
+            <h2 id="screen-title" class="text-xl font-semibold text-center text-gray-200">নতুন মিটিং তৈরি করুন</h2>
+            
+            <div>
+                <label class="block text-xs font-medium text-gray-400 uppercase mb-2">আপনার নাম</label>
+                <input type="text" id="usernameInput" placeholder="যেমন: আব্দুল্লাহ" class="w-full px-4 py-3 bg-gray-700 text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
+            </div>
+
+            <div id="admin-box" class="space-y-4 border-t border-gray-700 pt-4">
+                <div>
+                    <label class="block text-xs font-medium text-gray-400 uppercase mb-2">মিটিং বা রুমের নাম</label>
+                    <input type="text" id="roomNameInput" placeholder="যেমন: অফিসিয়াল মিটিং / বন্ধুদের আড্ডা" class="w-full px-4 py-3 bg-gray-700 text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
+                </div>
+                <button id="btnCreateMeeting" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl transition shadow-lg flex items-center justify-center gap-2">
+                    🚀 রুম তৈরি করুন ও লিংক নিন
+                </button>
+            </div>
+
+            <div id="guest-box" class="hidden space-y-4 border-t border-gray-700 pt-4">
+                <div class="bg-gray-700/50 p-3 rounded-xl border border-gray-600 text-sm text-center">
+                    📢 মিটিংয়ের নাম: <span id="invitedRoomName" class="font-bold text-green-400">---</span>
+                </div>
+                <button id="btnJoinMeeting" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-xl transition shadow-lg">
+                    🟢 সরাসরি মিটিংয়ে জয়েন করুন
+                </button>
+            </div>
+        </div>
+
+        <div id="video-screen" class="hidden flex-1 flex flex-col justify-between space-y-4">
+            
+            <div class="bg-gray-800 px-6 py-3 rounded-xl flex flex-col sm:flex-row justify-between items-center gap-4 shadow-md">
+                <div>
+                    <span class="text-xs text-gray-400 block">রুমের নাম:</span>
+                    <span id="displayRoomName" class="text-white font-bold text-lg">-------</span>
+                </div>
+                
+                <div class="flex items-center gap-2 bg-gray-900 p-1.5 rounded-lg border border-gray-700 w-full sm:w-auto">
+                    <input type="text" id="inviteLinkUrl" readonly class="bg-transparent text-xs text-blue-400 px-2 outline-none font-mono w-48 sm:w-64 select-all">
+                    <button id="btnCopyLink" class="bg-blue-600 hover:bg-blue-700 text-xs px-3 py-1.5 rounded font-bold transition whitespace-nowrap">
+                        📋 লিংক কপি করুন
+                    </button>
+                </div>
+
+                <div id="participant-count" class="bg-green-950 text-green-400 px-4 py-1.5 rounded-full text-xs font-bold border border-green-800 shrink-0">
+                    মেম্বার: ১ জন
+                </div>
+            </div>
+
+            <div id="video-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 flex-1 items-center justify-center p-4 bg-gray-950 rounded-2xl min-h-[450px] max-h-[650px] overflow-y-auto">
+                </div>
+
+            <div class="bg-gray-800 p-4 rounded-xl flex justify-center items-center gap-6 shadow-lg">
+                <button id="toggleMic" class="bg-gray-700 hover:bg-gray-600 p-4 rounded-full transition text-lg" title="Mute/Unmute">🎤</button>
+                <button id="toggleCam" class="bg-gray-700 hover:bg-gray-600 p-4 rounded-full transition text-lg" title="Camera On/Off">📷</button>
+                <button id="btnLeave" class="bg-red-600 hover:bg-red-700 px-6 py-3 rounded-xl font-bold transition shadow-md">
+                    মিটিং থেকে বের হন
+                </button>
+            </div>
+        </div>
+
+        <footer class="text-center text-xs text-gray-600 mt-4">
+            &copy; 2026 Flawless Platform. Powered by Firebase & VideoSDK.
+        </footer>
+    </div>
+
+    <script>
+        // ১. আপনার দেওয়া Firebase Config
+        const firebaseConfig = {
+            apiKey: "AIzaSyBCpqt6OVooTsN__jWBlqbphaSVfkZDjR0",
+            authDomain: "flawless-parity-486609-t3.firebaseapp.com",
+            databaseURL: "https://flawless-parity-486609-t3-default-rtdb.firebaseio.com",
+            projectId: "flawless-parity-486609-t3",
+            storageBucket: "flawless-parity-486609-t3.firebasestorage.app",
+            messagingSenderId: "121220208254",
+            appId: "1:121220208254:web:bae0698f231f0881da6a2f",
+            measurementId: "G-TY1D29X4JL"
+        };
+        
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        // VideoSDK টেম্পোরারি ডেভলপমেন্ট টোকেন
+        const VIDEOSDK_TOKEN = "TEMPORARY_DEVELOPMENT_TOKEN"; 
+
+        let meeting = null;
+        let isMicOn = true;
+        let isCamOn = true;
+        let targetMeetingId = null;
+
+        // DOM Elements
+        const joinScreen = document.getElementById("join-screen");
+        const videoScreen = document.getElementById("video-screen");
+        const videoGrid = document.getElementById("video-grid");
+        const usernameInput = document.getElementById("usernameInput");
+        const roomNameInput = document.getElementById("roomNameInput");
+        const displayRoomName = document.getElementById("displayRoomName");
+        const inviteLinkUrl = document.getElementById("inviteLinkUrl");
+        const participantCount = document.getElementById("participant-count");
+        const screenTitle = document.getElementById("screen-title");
+        const adminBox = document.getElementById("admin-box");
+        const guestBox = document.getElementById("guest-box");
+        const invitedRoomName = document.getElementById("invitedRoomName");
+
+        // ২. URL থেকে অটোমেটিক 'মিটিং আইডি' চেক করা (ইনভাইট লিংকের লজিক)
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlRoomId = urlParams.get('room');
+
+        if (urlRoomId) {
+            // যদি লিংকে 'room' আইডি থাকে, তবে ইন্টারফেস গেস্ট মোডে বদলে যাবে
+            targetMeetingId = urlRoomId;
+            screenTitle.innerText = "আমন্ত্রিত মিটিংয়ে যোগ দিন";
+            adminBox.classList.add("hidden");
+            guestBox.classList.remove("hidden");
+
+            // ফায়ারবেস থেকে ওই রুমের নাম কুড়িয়ে আনা
+            database.ref('smart_meetings/' + targetMeetingId).once('value').then((snapshot) => {
+                if (snapshot.exists()) {
+                    invitedRoomName.innerText = snapshot.val().roomName;
+                } else {
+                    alert("দুঃখিত, এই ইনভাইট লিংকটির মেয়াদ শেষ হয়ে গেছে বা রুমটি মুছে ফেলা হয়েছে।");
+                    window.location.href = window.location.pathname; // রিসেট টু নরমাল ইউআরএল
+                }
+            });
+        }
+
+        // ৩. এডমিন কর্তৃক কাস্টম নাম দিয়ে নতুন রুম তৈরি করা
+        document.getElementById("btnCreateMeeting").addEventListener("click", async () => {
+            const adminName = usernameInput.value.trim();
+            const roomName = roomNameInput.value.trim();
+
+            if (!adminName || !roomName) {
+                alert("দয়া করে আপনার নাম এবং একটি সুন্দর রুমের নাম লিখুন!");
+                return;
+            }
+
+            // VideoSDK সার্ভার থেকে রুম আইডি তৈরি
+            const url = `https://api.videosdk.live/v2/rooms`;
+            const options = {
+                method: "POST",
+                headers: { Authorization: VIDEOSDK_TOKEN, "Content-Type": "application/json" },
+            };
+
+            let meetingId = "room-" + Math.random().toString(36).substring(2, 7); // Fallback ID
+
+            try {
+                const response = await fetch(url, options);
+                if(response.ok) {
+                    const data = await response.json();
+                    meetingId = data.roomId;
+                }
+            } catch (e) {
+                console.log("Using dynamic generated fallback room ID");
+            }
+
+            // ফায়ারবেস ডেটাবেজে রুমের নাম ও হোস্টের বিবরণ জমা রাখা
+            database.ref('smart_meetings/' + meetingId).set({
+                roomName: roomName,
+                hostName: adminName,
+                createdAt: Date.now()
+            });
+
+            startMeeting(meetingId, adminName, roomName);
+        });
+
+        // ৪. ইনভাইট লিংকে ক্লিক করে আসা গেস্টের সরাসরি জয়েন করা
+        document.getElementById("btnJoinMeeting").addEventListener("click", () => {
+            const guestName = usernameInput.value.trim();
+            if (!guestName) {
+                alert("মিটিংয়ে যোগ দিতে দয়া করে আপনার নাম লিখুন!");
+                return;
+            }
+            
+            const rName = invitedRoomName.innerText;
+            startMeeting(targetMeetingId, guestName, rName);
+        });
+
+        // ৫. মূল মিটিং ইঞ্জিন চালু করা
+        function startMeeting(meetingId, userDisplayName, roomName) {
+            joinScreen.classList.add("hidden");
+            videoScreen.classList.remove("hidden");
+            
+            displayRoomName.innerText = roomName;
+            
+            // ইনভাইট লিংক জেনারেট করা (বর্তমান ডোমেইন + মিটিং আইডি)
+            const generatedInviteLink = `${window.location.origin}${window.location.pathname}?room=${meetingId}`;
+            inviteLinkUrl.value = generatedInviteLink;
+
+            // VideoSDK কনফিগারেশন
+            window.VideoSDK.config(VIDEOSDK_TOKEN);
+            meeting = window.VideoSDK.initMeeting({
+                meetingId: meetingId,
+                name: userDisplayName,
+                micEnabled: true,
+                webcamEnabled: true,
+                maxResolution: "sd" // ৫০ জনের ডাটা ও ব্রাউজার সেভ রাখতে এসডি কোয়ালিটি বেস্ট
+            });
+
+            meeting.join();
+
+            // ইভেন্ট: নতুন কেউ জয়েন করলে ভিডিও তৈরি করা
+            meeting.on("participant-joined", (participant) => {
+                createVideoElement(participant);
+                updateCount();
+            });
+
+            // ইভেন্ট: কেউ লিভ নিলে গ্রিড থেকে বাদ দেওয়া
+            meeting.on("participant-left", (participant) => {
+                document.getElementById(`v-${participant.id}`)?.remove();
+                updateCount();
+            });
+
+            // নিজের ভিডিও কানেক্ট হওয়া
+            meeting.on("meeting-joined", () => {
+                createVideoElement(meeting.localParticipant);
+                updateCount();
+            });
+        }
+
+        // ৬. স্ক্রিনে ভিডিও বক্স তৈরি করা
+        function createVideoElement(participant) {
+            let box = document.createElement("div");
+            box.setAttribute("id", `v-${participant.id}`);
+            box.className = "bg-gray-800 rounded-xl p-2 relative aspect-video flex flex-col items-center justify-center border border-gray-700 shadow-md";
+
+            let video = document.createElement("video");
+            video.setAttribute("id", `video-${participant.id}`);
+            video.setAttribute("playsinline", true);
+            video.setAttribute("autoplay", true);
+            video.className = "w-full h-full object-cover rounded-lg bg-black";
+
+            let tag = document.createElement("div");
+            tag.className = "absolute bottom-3 left-3 bg-black/70 px-2.5 py-1 rounded-md text-xs font-semibold backdrop-blur-sm";
+            tag.innerText = participant.displayName;
+
+            box.appendChild(video);
+            box.appendChild(tag);
+            videoGrid.appendChild(box);
+
+            // ট্র্যাকিং অন-স্ট্রিম মিডিয়া
+            participant.on("stream-enabled", (stream) => {
+                if (stream.kind === "video") {
+                    const mediaStream = new MediaStream();
+                    mediaStream.addTrack(stream.track);
+                    video.srcObject = mediaStream;
+                }
+            });
+        }
+
+        function updateCount() {
+            if (meeting) {
+                const total = meeting.participants.size + 1;
+                participantCount.innerText = `মেম্বার: ${total} জন`;
+            }
+        }
+
+        // ৭. ইনভাইট লিংক এক ক্লিকে কপি করার লজিক
+        document.getElementById("btnCopyLink").addEventListener("click", () => {
+            inviteLinkUrl.select();
+            inviteLinkUrl.setSelectionRange(0, 99999); // মোবাইল ডিভাইসের জন্য
+            navigator.clipboard.writeText(inviteLinkUrl.value);
+            
+            const btn = document.getElementById("btnCopyLink");
+            btn.innerText = "✅ কপি হয়েছে!";
+            btn.classList.replace("bg-blue-600", "bg-green-600");
+            
+            setTimeout(() => {
+                btn.innerText = "📋 লিংক কপি করুন";
+                btn.classList.replace("bg-green-600", "bg-blue-600");
+            }, 2000);
+        });
+
+        // ৮. মিউট/ক্যামেরা/লিভ বাটন হ্যান্ডলিং
+        document.getElementById("toggleMic").addEventListener("click", () => {
+            if (isMicOn) {
+                meeting?.muteMic();
+                document.getElementById("toggleMic").classList.replace("bg-gray-700", "bg-red-500");
+            } else {
+                meeting?.unmuteMic();
+                document.getElementById("toggleMic").classList.replace("bg-red-500", "bg-gray-700");
+            }
+            isMicOn = !isMicOn;
+        });
+
+        document.getElementById("toggleCam").addEventListener("click", () => {
+            if (isCamOn) {
+                meeting?.disableWebcam();
+                document.getElementById("toggleCam").classList.replace("bg-gray-700", "bg-red-500");
+            } else {
+                meeting?.enableWebcam();
+                document.getElementById("toggleCam").classList.replace("bg-red-500", "bg-gray-700");
+            }
+            isCamOn = !isCamOn;
+        });
+
+        document.getElementById("btnLeave").addEventListener("click", () => {
+            meeting?.leave();
+            location.reload();
+        });
+    </script>
+</body>
+</html>
