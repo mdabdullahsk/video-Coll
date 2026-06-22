@@ -14,7 +14,6 @@
             color: #fff;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-        /* Custom gradient for join button */
         .gradient-btn {
             background: linear-gradient(90deg, #800020 0%, #002280 100%);
             border: 1px solid #ffffffaa;
@@ -84,7 +83,6 @@
                     <video id="local-video" autoplay playsinline muted class="w-full h-full object-cover"></video>
                     <div class="absolute bottom-2 left-2 bg-black bg-opacity-60 px-2 py-1 rounded text-xs">You (Admin/Employee)</div>
                 </div>
-                <!-- Remote videos will dynamically append here -->
             </div>
         </div>
 
@@ -102,12 +100,12 @@
         </div>
     </div>
 
-    <!-- Firebase v10 SDK Imports -->
+    <!-- Firebase SDK Imports -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, set, push, onChildAdded, onChildRemoved, remove, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        import { getDatabase, ref, set, push, onChildAdded, onChildRemoved, remove, onValue, onDisconnect } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-        // Firebase Configuration (Using your provided keys)
+        // Firebase Configuration
         const firebaseConfig = {
             apiKey: "AIzaSyBCpqt6OVooTsN__jWBlqbphaSVfkZDjR0",
             authDomain: "flawless-parity-486609-t3.firebaseapp.com",
@@ -119,27 +117,25 @@
             measurementId: "G-TY1D29X4JL"
         };
 
-        // Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        // WebRTC Config (Public STUN server for ICE candidate exchange)
+        // STUN servers for WebRTC
         const iceServers = {
             iceServers: [
                 { urls: "stun:stun.l.google.com:19302" },
-                { urls: "stun:stun1.l.google.com:19302" }
+                { urls: "stun:stun1.l.google.com:19302" },
+                { urls: "stun:stun2.l.google.com:19302" }
             ]
         };
 
-        // Application State
         let localStream;
-        let peerConnections = {};
+        let peerConnections = {}; // Stores peerConnection and its candidate queue
         let myId = Math.random().toString(36).substring(2, 15);
         let roomId = "";
         let isMicOn = true;
         let isVideoOn = true;
 
-        // UI Selectors
         const setupContainer = document.getElementById("setup-container");
         const meetingContainer = document.getElementById("meeting-container");
         const roomInput = document.getElementById("room-input");
@@ -154,24 +150,20 @@
         const activeRoomNameDisplay = document.getElementById("active-room-name");
         const participantCount = document.getElementById("participant-count");
 
-        // Control buttons
         const toggleMicBtn = document.getElementById("toggle-mic");
         const toggleVideoBtn = document.getElementById("toggle-video");
         const leaveBtn = document.getElementById("leave-btn");
 
-        // Check if the URL contains a room ID (for invitation links)
         const urlParams = new URLSearchParams(window.location.search);
         const queryRoomId = urlParams.get('room');
 
         if (queryRoomId) {
             roomId = queryRoomId;
             roomStatusText.innerText = `You are invited to join room: ${roomId}`;
-            // Hide admin panel if user joins via link
             document.getElementById("admin-panel").classList.add("hidden");
             document.getElementById("divider-line").classList.add("hidden");
         }
 
-        // Create a new meeting (Admin action)
         createBtn.addEventListener("click", () => {
             const inputVal = roomInput.value.trim();
             if (!inputVal) {
@@ -184,7 +176,6 @@
             inviteBox.classList.remove("hidden");
         });
 
-        // Copy Invitation Link
         copyBtn.addEventListener("click", () => {
             shareLinkInput.select();
             document.execCommand("copy");
@@ -192,41 +183,35 @@
             setTimeout(() => { copyBtn.innerText = "Copy"; }, 2000);
         });
 
-        // Join Meeting Action (Admin or Employee)
         joinBtn.addEventListener("click", async () => {
             if (!roomId) {
-                alert("No active meeting room found. Please create one or use a valid invite link.");
+                alert("No active meeting room found.");
                 return;
             }
             await startMeeting();
         });
 
-        // Start WebRTC and Signalling Session
         async function startMeeting() {
             try {
-                // Request mic and camera access
                 localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
                 localVideo.srcObject = localStream;
             } catch (error) {
-                console.error("Error accessing media devices:", error);
-                alert("Could not access camera or microphone. Please ensure permissions are granted.");
+                console.error("Error accessing camera/microphone:", error);
+                alert("Could not access camera or microphone. Please check browser permissions.");
                 return;
             }
 
-            // Switch Screen Views
             setupContainer.classList.add("hidden");
             meetingContainer.classList.remove("hidden");
             meetingContainer.classList.add("flex");
             activeRoomNameDisplay.innerText = decodeURIComponent(roomId);
 
-            // Register yourself in the database
             const userRef = ref(db, `rooms/${roomId}/users/${myId}`);
             set(userRef, { id: myId, joinedAt: Date.now() });
 
-            // Remove self from DB upon closing tab/disconnecting
-            window.addEventListener("beforeunload", leaveMeeting);
+            // Automatically remove presence on disconnect
+            onDisconnect(userRef).remove();
 
-            // Signalling: Listen for other users joining
             const usersRef = ref(db, `rooms/${roomId}/users`);
             onChildAdded(usersRef, (snapshot) => {
                 const newUser = snapshot.val();
@@ -235,13 +220,11 @@
                 }
             });
 
-            // Signalling: Listen for disconnects
             onChildRemoved(usersRef, (snapshot) => {
                 const leftUser = snapshot.val();
                 removePeerConnection(leftUser.id);
             });
 
-            // Listen for signals (Offer, Answer, ICE Candidates)
             const signalsRef = ref(db, `rooms/${roomId}/signals/${myId}`);
             onChildAdded(signalsRef, async (snapshot) => {
                 const signal = snapshot.val();
@@ -250,7 +233,6 @@
                 }
             });
 
-            // Keep track of participant count
             onValue(usersRef, (snapshot) => {
                 if(snapshot.exists()) {
                     const count = Object.keys(snapshot.val()).length;
@@ -259,19 +241,22 @@
             });
         }
 
-        // Setup RTCPeerConnection for a specific remote user
+        // Setup RTCPeerConnection with ICE Candidate Queue
         function setupPeerConnection(remoteId) {
             const pc = new RTCPeerConnection(iceServers);
-            peerConnections[remoteId] = pc;
+            
+            // peer info holding PC object and ICE Candidate queue
+            peerConnections[remoteId] = {
+                pc: pc,
+                iceQueue: []
+            };
 
-            // Add local stream tracks to connection
             localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
 
-            // Remote stream arrival
+            // Handles track arrival (Video/Audio) robustly
             pc.ontrack = (event) => {
                 let remoteVideo = document.getElementById(`video-${remoteId}`);
                 if (!remoteVideo) {
-                    // Create video element container
                     const container = document.createElement("div");
                     container.id = `container-${remoteId}`;
                     container.className = "relative bg-gray-900 rounded-lg overflow-hidden border border-gray-800";
@@ -281,7 +266,20 @@
                     remoteVideo.autoplay = true;
                     remoteVideo.playsInline = true;
                     remoteVideo.className = "w-full h-full object-cover";
-                    remoteVideo.srcObject = event.streams[0];
+                    
+                    // Fallback track rendering
+                    if (event.streams && event.streams[0]) {
+                        remoteVideo.srcObject = event.streams[0];
+                    } else {
+                        const inboundStream = new MediaStream();
+                        inboundStream.addTrack(event.track);
+                        remoteVideo.srcObject = inboundStream;
+                    }
+
+                    // Mobile Autoplay safeguard
+                    remoteVideo.onloadedmetadata = () => {
+                        remoteVideo.play().catch(e => console.log("Autoplay interrupted:", e));
+                    };
 
                     const label = document.createElement("div");
                     label.className = "absolute bottom-2 left-2 bg-black bg-opacity-60 px-2 py-1 rounded text-xs";
@@ -293,7 +291,6 @@
                 }
             };
 
-            // ICE Candidate discovery
             pc.onicecandidate = (event) => {
                 if (event.candidate) {
                     sendSignal(remoteId, {
@@ -306,7 +303,6 @@
             return pc;
         }
 
-        // Call Initiator logic (Runs when a new user joins)
         async function initiateCall(remoteId) {
             const pc = setupPeerConnection(remoteId);
             const offer = await pc.createOffer();
@@ -318,7 +314,6 @@
             });
         }
 
-        // Send signalling message via Firebase
         function sendSignal(remoteId, data) {
             const targetSignalsRef = ref(db, `rooms/${roomId}/signals/${remoteId}`);
             const newSignalRef = push(targetSignalsRef);
@@ -329,14 +324,29 @@
             });
         }
 
-        // Handle incoming signalling messages
+        // Process stored ICE candidates once connection setup is ready
+        async function processIceQueue(peerObj) {
+            const pc = peerObj.pc;
+            while (peerObj.iceQueue.length > 0) {
+                const candidateData = peerObj.iceQueue.shift();
+                try {
+                    await pc.addIceCandidate(new RTCIceCandidate(candidateData));
+                } catch (e) {
+                    console.error("Error adding queued ice candidate:", e);
+                }
+            }
+        }
+
         async function handleIncomingSignal(signal, signalKey) {
             const remoteId = signal.sender;
-            let pc = peerConnections[remoteId];
+            let peerObj = peerConnections[remoteId];
 
-            if (!pc) {
-                pc = setupPeerConnection(remoteId);
+            if (!peerObj) {
+                setupPeerConnection(remoteId);
+                peerObj = peerConnections[remoteId];
             }
+
+            const pc = peerObj.pc;
 
             if (signal.type === "offer") {
                 await pc.setRemoteDescription(new RTCSessionDescription({ type: "offer", sdp: signal.sdp }));
@@ -347,26 +357,36 @@
                     type: "answer",
                     sdp: answer.sdp
                 });
+
+                // Process queued candidates now that remote description is set
+                await processIceQueue(peerObj);
+
             } else if (signal.type === "answer") {
                 await pc.setRemoteDescription(new RTCSessionDescription({ type: "answer", sdp: signal.sdp }));
+                await processIceQueue(peerObj);
+
             } else if (signal.type === "candidate") {
-                const candidate = JSON.parse(signal.candidate);
-                try {
-                    await pc.addIceCandidate(new RTCIceCandidate(candidate));
-                } catch (e) {
-                    console.error("Error adding ice candidate", e);
+                const candidateData = JSON.parse(signal.candidate);
+                if (pc.remoteDescription && pc.remoteDescription.type) {
+                    try {
+                        await pc.addIceCandidate(new RTCIceCandidate(candidateData));
+                    } catch (e) {
+                        console.error("Error adding direct ice candidate:", e);
+                    }
+                } else {
+                    // Queue candidate if remote description is not ready yet
+                    peerObj.iceQueue.push(candidateData);
                 }
             }
 
-            // Optional: signal data deletion after processing to keep the database light
+            // Clean signaling node to prevent database bloating
             const processedSignalRef = ref(db, `rooms/${roomId}/signals/${myId}/${signalKey}`);
             remove(processedSignalRef);
         }
 
-        // Remove video and close peer connection
         function removePeerConnection(remoteId) {
             if (peerConnections[remoteId]) {
-                peerConnections[remoteId].close();
+                peerConnections[remoteId].pc.close();
                 delete peerConnections[remoteId];
             }
             const videoElem = document.getElementById(`container-${remoteId}`);
@@ -375,7 +395,6 @@
             }
         }
 
-        // Controls: Toggle Microphone
         toggleMicBtn.addEventListener("click", () => {
             isMicOn = !isMicOn;
             localStream.getAudioTracks()[0].enabled = isMicOn;
@@ -386,7 +405,6 @@
             toggleMicBtn.classList.toggle("bg-red-900", !isMicOn);
         });
 
-        // Controls: Toggle Video Camera
         toggleVideoBtn.addEventListener("click", () => {
             isVideoOn = !isVideoOn;
             localStream.getVideoTracks()[0].enabled = isVideoOn;
@@ -397,23 +415,16 @@
             toggleVideoBtn.classList.toggle("bg-red-900", !isVideoOn);
         });
 
-        // Leave Meeting Logic
         function leaveMeeting() {
             if (localStream) {
                 localStream.getTracks().forEach(track => track.stop());
             }
-
-            // Remove node from Firebase
             if (roomId) {
                 remove(ref(db, `rooms/${roomId}/users/${myId}`));
             }
-
-            // Clear peer connections
             Object.keys(peerConnections).forEach(remoteId => {
                 removePeerConnection(remoteId);
             });
-
-            // Reload page to return to state zero
             window.location.href = window.location.origin + window.location.pathname;
         }
 
