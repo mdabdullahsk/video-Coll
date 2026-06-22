@@ -1,671 +1,113 @@
 <!DOCTYPE html>
-<html lang="bn">
+<html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>অফিস মিটিং - ভিডিও কনফারেন্সিং</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebRTC Video Meeting</title>
+    <!-- Tailwind CSS for UI Styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* ========== CSS VARIABLES ========== */
-        :root {
-            --primary: #4A6CF7;
-            --primary-dark: #3651d4;
-            --secondary: #6C63FF;
-            --success: #2ecc71;
-            --danger: #e74c3c;
-            --warning: #f39c12;
-            --bg-dark: #0f0e17;
-            --bg-card: #1a1a2e;
-            --bg-light: #16213e;
-            --text-light: #fffffe;
-            --text-muted: #a7a9be;
-            --shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
-            --radius: 16px;
-            --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
         body {
+            background-color: #000;
+            color: #fff;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: var(--bg-dark);
-            color: var(--text-light);
-            min-height: 100vh;
         }
-
-        ::-webkit-scrollbar {
-            width: 6px;
+        /* Custom gradient for join button */
+        .gradient-btn {
+            background: linear-gradient(90deg, #800020 0%, #002280 100%);
+            border: 1px solid #ffffffaa;
+            transition: transform 0.2s;
         }
-        ::-webkit-scrollbar-track {
-            background: var(--bg-dark);
+        .gradient-btn:hover {
+            transform: scale(1.02);
         }
-        ::-webkit-scrollbar-thumb {
-            background: var(--primary);
-            border-radius: 10px;
-        }
-
-        /* ========== NAVBAR ========== */
-        .navbar {
-            background: var(--bg-card);
-            padding: 16px 32px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            backdrop-filter: blur(10px);
-        }
-
-        .navbar .logo {
-            font-size: 1.5rem;
-            font-weight: 700;
-            background: linear-gradient(135deg, #4A6CF7, #6C63FF);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .navbar .logo i {
-            -webkit-text-fill-color: #4A6CF7;
-            margin-right: 10px;
-        }
-
-        .navbar .user-info {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .navbar .user-info .avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: var(--primary);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 600;
-            font-size: 1.1rem;
-        }
-
-        /* ========== MAIN CONTAINER ========== */
-        .main-container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 24px;
-        }
-
-        /* ========== CREATE MEETING SECTION ========== */
-        .create-meeting-section {
-            background: var(--bg-card);
-            border-radius: var(--radius);
-            padding: 32px;
-            margin-bottom: 24px;
-            box-shadow: var(--shadow);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        .create-meeting-section h2 {
-            font-size: 1.8rem;
-            margin-bottom: 8px;
-        }
-
-        .create-meeting-section .subtitle {
-            color: var(--text-muted);
-            margin-bottom: 24px;
-        }
-
-        .create-meeting-form {
-            display: flex;
-            gap: 16px;
-            flex-wrap: wrap;
-            align-items: center;
-        }
-
-        .create-meeting-form input {
-            flex: 1;
-            min-width: 200px;
-            padding: 14px 20px;
-            border-radius: 12px;
-            border: 2px solid rgba(255, 255, 255, 0.1);
-            background: rgba(255, 255, 255, 0.05);
-            color: #fff;
-            font-size: 1rem;
-            transition: var(--transition);
-        }
-
-        .create-meeting-form input:focus {
-            outline: none;
-            border-color: var(--primary);
-            background: rgba(255, 255, 255, 0.08);
-        }
-
-        .create-meeting-form input::placeholder {
-            color: var(--text-muted);
-        }
-
-        .btn {
-            padding: 14px 28px;
-            border: none;
-            border-radius: 12px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: var(--transition);
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-            white-space: nowrap;
-        }
-
-        .btn:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(74, 108, 247, 0.3);
-        }
-
-        .btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none !important;
-        }
-
-        .btn-primary {
-            background: var(--primary);
-            color: #fff;
-        }
-
-        .btn-primary:hover:not(:disabled) {
-            background: var(--primary-dark);
-        }
-
-        .btn-success {
-            background: var(--success);
-            color: #fff;
-        }
-
-        .btn-success:hover:not(:disabled) {
-            background: #27ae60;
-        }
-
-        .btn-danger {
-            background: var(--danger);
-            color: #fff;
-        }
-
-        .btn-danger:hover:not(:disabled) {
-            background: #c0392b;
-        }
-
-        .btn-outline {
-            background: transparent;
-            border: 2px solid var(--primary);
-            color: var(--primary);
-        }
-
-        .btn-outline:hover:not(:disabled) {
-            background: var(--primary);
-            color: #fff;
-        }
-
-        .btn-copy {
-            background: rgba(255, 255, 255, 0.1);
-            color: #fff;
-        }
-
-        .btn-copy:hover:not(:disabled) {
-            background: rgba(255, 255, 255, 0.2);
-        }
-
-        /* ========== INVITE LINK CARD ========== */
-        .invite-link-card {
-            background: rgba(74, 108, 247, 0.1);
-            border: 1px solid rgba(74, 108, 247, 0.2);
-            border-radius: 12px;
-            padding: 20px 24px;
-            margin-top: 20px;
-            display: none;
-            animation: slideDown 0.4s ease;
-        }
-
-        .invite-link-card.show {
-            display: block;
-        }
-
-        @keyframes slideDown {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .invite-link-card .link-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 12px;
-            margin-bottom: 12px;
-        }
-
-        .invite-link-card .link-header h3 {
-            font-size: 1.1rem;
-            color: var(--primary);
-        }
-
-        .invite-link-card .link-box {
-            display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
-            align-items: center;
-        }
-
-        .invite-link-card .link-box input {
-            flex: 1;
-            min-width: 250px;
-            padding: 12px 16px;
-            border-radius: 10px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            background: rgba(0, 0, 0, 0.3);
-            color: #fff;
-            font-size: 0.9rem;
-            cursor: pointer;
-        }
-
-        .invite-link-card .link-box input:focus {
-            outline: none;
-            border-color: var(--primary);
-        }
-
-        .meeting-info {
-            display: flex;
-            gap: 20px;
-            flex-wrap: wrap;
-            margin-top: 16px;
-            padding-top: 16px;
-            border-top: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        .meeting-info .info-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            color: var(--text-muted);
-            font-size: 0.9rem;
-        }
-
-        .meeting-info .info-item i {
-            color: var(--primary);
-        }
-
-        /* ========== VIDEO GRID ========== */
-        .video-section {
-            background: var(--bg-card);
-            border-radius: var(--radius);
-            padding: 24px;
-            box-shadow: var(--shadow);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            min-height: 400px;
-        }
-
-        .video-section .section-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 12px;
-            margin-bottom: 20px;
-        }
-
-        .video-section .section-header h2 {
-            font-size: 1.4rem;
-        }
-
-        .video-section .section-header .status-badge {
-            padding: 8px 20px;
-            border-radius: 30px;
-            font-size: 0.85rem;
-            font-weight: 500;
-        }
-
-        .status-badge.waiting {
-            background: rgba(243, 156, 18, 0.2);
-            color: var(--warning);
-        }
-
-        .status-badge.live {
-            background: rgba(46, 204, 113, 0.2);
-            color: var(--success);
-        }
-
-        .status-badge.ended {
-            background: rgba(231, 76, 60, 0.2);
-            color: var(--danger);
-        }
-
-        .video-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-            gap: 16px;
-            min-height: 300px;
-            align-content: start;
-        }
-
-        .video-grid.empty {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
-            gap: 16px;
-            color: var(--text-muted);
-            min-height: 300px;
-        }
-
-        .video-grid.empty i {
-            font-size: 4rem;
-            opacity: 0.3;
-        }
-
-        .video-item {
-            position: relative;
-            background: #0a0a1a;
-            border-radius: 12px;
-            overflow: hidden;
-            aspect-ratio: 4/3;
-            border: 2px solid transparent;
-            transition: var(--transition);
-        }
-
-        .video-item.active-speaker {
-            border-color: var(--primary);
-            box-shadow: 0 0 30px rgba(74, 108, 247, 0.2);
-        }
-
-        .video-item video {
-            width: 100%;
-            height: 100%;
+        video {
+            transform: rotateY(180deg);
             object-fit: cover;
-            background: #0a0a1a;
-        }
-
-        .video-item .video-label {
-            position: absolute;
-            bottom: 10px;
-            left: 10px;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 4px 14px;
-            border-radius: 20px;
-            font-size: 0.75rem;
-            font-weight: 500;
-            backdrop-filter: blur(4px);
-        }
-
-        .video-item .video-label .role-badge {
-            background: var(--primary);
-            padding: 1px 8px;
-            border-radius: 10px;
-            font-size: 0.6rem;
-            margin-left: 6px;
-        }
-
-        .video-item .mute-indicator {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: rgba(0, 0, 0, 0.6);
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 0.7rem;
-            display: none;
-            align-items: center;
-            gap: 4px;
-        }
-
-        .video-item .mute-indicator.show {
-            display: flex;
-        }
-
-        /* ========== CONTROLS BAR ========== */
-        .controls-bar {
-            display: flex;
-            justify-content: center;
-            gap: 12px;
-            flex-wrap: wrap;
-            margin-top: 20px;
-            padding-top: 20px;
-            border-top: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        .controls-bar .btn {
-            padding: 12px 20px;
-            min-width: 60px;
-            justify-content: center;
-            border-radius: 40px;
-        }
-
-        .controls-bar .btn i {
-            font-size: 1.2rem;
-        }
-
-        .btn-mic {
-            background: rgba(255, 255, 255, 0.08);
-            color: #fff;
-        }
-
-        .btn-mic.muted {
-            background: var(--danger);
-            color: #fff;
-        }
-
-        .btn-cam {
-            background: rgba(255, 255, 255, 0.08);
-            color: #fff;
-        }
-
-        .btn-cam.off {
-            background: var(--danger);
-            color: #fff;
-        }
-
-        .btn-screen {
-            background: rgba(255, 255, 255, 0.08);
-            color: #fff;
-        }
-
-        .btn-screen.active {
-            background: var(--success);
-            color: #fff;
-        }
-
-        /* ========== TOAST ========== */
-        .toast {
-            position: fixed;
-            bottom: 30px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.9);
-            backdrop-filter: blur(10px);
-            padding: 14px 28px;
-            border-radius: 40px;
-            color: #fff;
-            font-weight: 500;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            display: none;
-            z-index: 999;
-            animation: slideUp 0.4s ease;
-            max-width: 90%;
-            text-align: center;
-        }
-
-        @keyframes slideUp {
-            from {
-                opacity: 0;
-                transform: translateX(-50%) translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateX(-50%) translateY(0);
-            }
-        }
-
-        /* ========== RESPONSIVE ========== */
-        @media (max-width: 768px) {
-            .navbar {
-                padding: 12px 16px;
-            }
-            .navbar .logo {
-                font-size: 1.2rem;
-            }
-            .main-container {
-                padding: 12px;
-            }
-            .create-meeting-section {
-                padding: 20px;
-            }
-            .create-meeting-form {
-                flex-direction: column;
-            }
-            .create-meeting-form input {
-                width: 100%;
-                min-width: unset;
-            }
-            .create-meeting-form .btn {
-                width: 100%;
-                justify-content: center;
-            }
-            .invite-link-card .link-box {
-                flex-direction: column;
-            }
-            .invite-link-card .link-box input {
-                width: 100%;
-                min-width: unset;
-            }
-            .video-grid {
-                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-                gap: 10px;
-            }
-            .controls-bar .btn {
-                padding: 10px 14px;
-                min-width: 50px;
-                font-size: 0.8rem;
-            }
-            .video-section .section-header {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-            .meeting-info {
-                flex-direction: column;
-                gap: 8px;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .video-grid {
-                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-                gap: 8px;
-            }
         }
     </style>
 </head>
-<body>
+<body class="h-screen flex flex-col justify-between overflow-hidden">
 
-    <!-- ========== TOAST ========== -->
-    <div id="toast" class="toast"></div>
-
-    <!-- ========== NAVBAR ========== -->
-    <nav class="navbar">
-        <div class="logo">
-            <i class="fas fa-video"></i> অফিস মিটিং
-        </div>
-        <div class="user-info">
-            <span id="userRoleDisplay" style="color: var(--text-muted); font-size: 0.9rem;">
-                <i class="fas fa-user-tie"></i> বস
-            </span>
-            <div class="avatar" id="userAvatar">ব</div>
-        </div>
-    </nav>
-
-    <!-- ========== MAIN ========== -->
-    <div class="main-container">
-
-        <!-- CREATE MEETING SECTION -->
-        <div class="create-meeting-section" id="createMeetingSection">
-            <h2><i class="fas fa-plus-circle" style="color: var(--primary);"></i> নতুন মিটিং তৈরি করুন</h2>
-            <p class="subtitle">একটি মিটিং রুম তৈরি করুন এবং কর্মীদের আমন্ত্রণ জানান</p>
-
-            <div class="create-meeting-form">
-                <input type="text" id="meetingNameInput" placeholder="মিটিং নাম (যেমন: সাপ্তাহিক মিটিং)" />
-                <button class="btn btn-primary" id="createMeetingBtn">
-                    <i class="fas fa-plus"></i> মিটিং তৈরি করুন
-                </button>
+    <!-- 1. SETUP SECTION (Admin / Employee Entry) -->
+    <div id="setup-container" class="flex-grow flex flex-col md:flex-row items-center justify-center p-6 gap-8">
+        
+        <!-- Admin Block -->
+        <div id="admin-panel" class="w-full max-w-md p-8 border border-gray-800 rounded-lg bg-black text-center">
+            <h1 class="text-3xl font-serif mb-8 text-gray-200">Admin</h1>
+            <div class="border border-white p-4 rounded-sm flex items-center mb-6">
+                <span class="text-gray-400 mr-2 whitespace-nowrap">Room Name:</span>
+                <input type="text" id="room-input" class="bg-transparent border-none outline-none text-white w-full" placeholder="Enter here...">
             </div>
-
-            <!-- Invite Link Card -->
-            <div class="invite-link-card" id="inviteLinkCard">
-                <div class="link-header">
-                    <h3><i class="fas fa-link"></i> আমন্ত্রণ লিংক</h3>
-                    <span style="font-size:0.8rem; color: var(--text-muted);">
-                        <i class="fas fa-users"></i> <span id="participantCountDisplay">০</span> জন জয়েন করেছেন
-                    </span>
-                </div>
-                <div class="link-box">
-                    <input type="text" id="inviteLinkInput" readonly />
-                    <button class="btn btn-copy" id="copyLinkBtn"><i class="fas fa-copy"></i> কপি</button>
-                    <button class="btn btn-success" id="joinAsHostBtn"><i class="fas fa-video"></i> মিটিং শুরু</button>
-                    <button class="btn btn-danger" id="endMeetingBtn" style="display:none;"><i class="fas fa-times"></i> শেষ</button>
-                </div>
-                <div class="meeting-info">
-                    <div class="info-item"><i class="fas fa-clock"></i> <span id="meetingStatus">অপেক্ষমান</span></div>
-                    <div class="info-item"><i class="fas fa-user-tie"></i> হোস্ট: <span id="hostNameDisplay">আপনি</span></div>
-                    <div class="info-item"><i class="fas fa-hashtag"></i> রুম: <span id="roomIdDisplay">-</span></div>
+            <button id="create-btn" class="w-full bg-white text-black py-2 font-semibold hover:bg-gray-200 transition">
+                Create Room & Get Link
+            </button>
+            
+            <!-- Invite Link Display -->
+            <div id="invite-box" class="mt-6 hidden">
+                <p class="text-sm text-gray-400 mb-2">Share this link with participants:</p>
+                <div class="flex items-center bg-gray-900 p-2 rounded border border-gray-700">
+                    <input type="text" id="share-link-input" readonly class="bg-transparent text-xs text-gray-300 w-full outline-none">
+                    <button id="copy-btn" class="ml-2 text-blue-400 hover:text-blue-300 text-sm">Copy</button>
                 </div>
             </div>
         </div>
 
-        <!-- VIDEO SECTION -->
-        <div class="video-section" id="videoSection">
-            <div class="section-header">
-                <h2><i class="fas fa-users"></i> মিটিং রুম</h2>
-                <span class="status-badge waiting" id="meetingStatusBadge">
-                    <i class="fas fa-circle"></i> অপেক্ষমান
-                </span>
-            </div>
+        <!-- Divider -->
+        <div id="divider-line" class="hidden md:block h-64 w-px bg-gray-800"></div>
 
-            <div class="video-grid empty" id="videoGrid">
-                <i class="fas fa-video"></i>
-                <span>কোন মিটিং চলছে না</span>
-                <span style="font-size:0.8rem; opacity:0.5;">উপরে মিটিং তৈরি করুন এবং কর্মীদের আমন্ত্রণ জানান</span>
-            </div>
-
-            <!-- Controls -->
-            <div class="controls-bar">
-                <button class="btn btn-mic" id="micBtn" disabled><i class="fas fa-microphone"></i></button>
-                <button class="btn btn-cam" id="camBtn" disabled><i class="fas fa-video"></i></button>
-                <button class="btn btn-screen" id="screenBtn" disabled><i class="fas fa-desktop"></i></button>
-                <button class="btn btn-danger" id="leaveBtn" disabled><i class="fas fa-phone-slash"></i></button>
-            </div>
+        <!-- Employee Block -->
+        <div id="employee-panel" class="w-full max-w-md p-8 border border-gray-800 rounded-lg bg-black text-center">
+            <h1 class="text-3xl font-serif mb-8 text-gray-200">Employee</h1>
+            <button id="join-btn" class="gradient-btn w-full py-4 px-6 rounded text-white text-lg font-medium shadow-lg">
+                Join the meeting
+            </button>
+            <p id="room-status-text" class="text-sm text-gray-500 mt-4">No active room URL detected. Please use an admin link or create one.</p>
         </div>
     </div>
 
-    <!-- ========== FIREBASE ========== -->
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js">
-    </script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js">
-    </script>
+    <!-- 2. MEETING IN PROGRESS SCREEN -->
+    <div id="meeting-container" class="hidden flex-grow flex-col h-full relative">
+        <!-- Title bar -->
+        <div class="p-4 bg-gray-950 border-b border-gray-900 flex justify-between items-center">
+            <h2 class="text-xl font-semibold text-gray-300">Meeting in progress: <span id="active-room-name" class="text-blue-400"></span></h2>
+            <div class="text-sm text-gray-400" id="participant-count">Participants: 1</div>
+        </div>
 
-    <script>
-        // ============================================================
-        //  FIREBASE CONFIG
-        // ============================================================
+        <!-- Video Grid -->
+        <div class="flex-grow p-6 overflow-y-auto">
+            <div id="video-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 auto-rows-[200px]">
+                <!-- Local video container -->
+                <div class="relative bg-gray-900 rounded-lg overflow-hidden border border-gray-800">
+                    <video id="local-video" autoplay playsinline muted class="w-full h-full object-cover"></video>
+                    <div class="absolute bottom-2 left-2 bg-black bg-opacity-60 px-2 py-1 rounded text-xs">You (Admin/Employee)</div>
+                </div>
+                <!-- Remote videos will dynamically append here -->
+            </div>
+        </div>
+
+        <!-- Bottom Controls -->
+        <div class="p-4 bg-gray-950 border-t border-gray-900 flex justify-center items-center gap-6">
+            <button id="toggle-mic" class="w-12 h-12 rounded-full bg-gray-800 hover:bg-gray-700 flex items-center justify-center transition">
+                <i class="fa-solid fa-microphone text-white"></i>
+            </button>
+            <button id="toggle-video" class="w-12 h-12 rounded-full bg-gray-800 hover:bg-gray-700 flex items-center justify-center transition">
+                <i class="fa-solid fa-video text-white"></i>
+            </button>
+            <button id="leave-btn" class="w-12 h-12 rounded-full bg-red-600 hover:bg-red-700 flex items-center justify-center transition">
+                <i class="fa-solid fa-phone-slash text-white"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Firebase v10 SDK Imports -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, set, push, onChildAdded, onChildRemoved, remove, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+        // Firebase Configuration (Using your provided keys)
         const firebaseConfig = {
             apiKey: "AIzaSyBCpqt6OVooTsN__jWBlqbphaSVfkZDjR0",
             authDomain: "flawless-parity-486609-t3.firebaseapp.com",
@@ -677,931 +119,305 @@
             measurementId: "G-TY1D29X4JL"
         };
 
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
 
-        // ============================================================
-        //  DOM REFS
-        // ============================================================
-        const meetingNameInput = document.getElementById('meetingNameInput');
-        const createMeetingBtn = document.getElementById('createMeetingBtn');
-        const inviteLinkCard = document.getElementById('inviteLinkCard');
-        const inviteLinkInput = document.getElementById('inviteLinkInput');
-        const copyLinkBtn = document.getElementById('copyLinkBtn');
-        const joinAsHostBtn = document.getElementById('joinAsHostBtn');
-        const endMeetingBtn = document.getElementById('endMeetingBtn');
-        const videoGrid = document.getElementById('videoGrid');
-        const micBtn = document.getElementById('micBtn');
-        const camBtn = document.getElementById('camBtn');
-        const screenBtn = document.getElementById('screenBtn');
-        const leaveBtn = document.getElementById('leaveBtn');
-        const participantCountDisplay = document.getElementById('participantCountDisplay');
-        const meetingStatus = document.getElementById('meetingStatus');
-        const meetingStatusBadge = document.getElementById('meetingStatusBadge');
-        const hostNameDisplay = document.getElementById('hostNameDisplay');
-        const roomIdDisplay = document.getElementById('roomIdDisplay');
-        const userRoleDisplay = document.getElementById('userRoleDisplay');
-        const userAvatar = document.getElementById('userAvatar');
-
-        // ============================================================
-        //  STATE
-        // ============================================================
-        let currentRoomId = null;
-        let currentMeetingName = '';
-        let userId = null;
-        let isHost = false;
-        let isInMeeting = false;
-        let localStream = null;
-        let localScreenStream = null;
-        let isMicMuted = false;
-        let isCamOff = false;
-        let isScreenSharing = false;
-        let peerConnections = {};
-        let participantsRef = null;
-        let signalsRef = null;
-        let roomRef = null;
-        let localVideoElement = null;
-        let userName = '';
-
-        const rtcConfig = {
+        // WebRTC Config (Public STUN server for ICE candidate exchange)
+        const iceServers = {
             iceServers: [
-                { urls: 'stun:stun.l.google.com:19302' },
-                { urls: 'stun:stun1.l.google.com:19302' },
-                { urls: 'stun:stun2.l.google.com:19302' },
-                { urls: 'stun:stun3.l.google.com:19302' },
-            ],
-            iceCandidatePoolSize: 10
+                { urls: "stun:stun.l.google.com:19302" },
+                { urls: "stun:stun1.l.google.com:19302" }
+            ]
         };
 
-        // ============================================================
-        //  TOAST HELPER
-        // ============================================================
-        function showToast(msg, duration = 3000) {
-            const toast = document.getElementById('toast');
-            toast.textContent = msg;
-            toast.style.display = 'block';
-            clearTimeout(toast._timer);
-            toast._timer = setTimeout(() => {
-                toast.style.display = 'none';
-            }, duration);
+        // Application State
+        let localStream;
+        let peerConnections = {};
+        let myId = Math.random().toString(36).substring(2, 15);
+        let roomId = "";
+        let isMicOn = true;
+        let isVideoOn = true;
+
+        // UI Selectors
+        const setupContainer = document.getElementById("setup-container");
+        const meetingContainer = document.getElementById("meeting-container");
+        const roomInput = document.getElementById("room-input");
+        const createBtn = document.getElementById("create-btn");
+        const joinBtn = document.getElementById("join-btn");
+        const inviteBox = document.getElementById("invite-box");
+        const shareLinkInput = document.getElementById("share-link-input");
+        const copyBtn = document.getElementById("copy-btn");
+        const videoGrid = document.getElementById("video-grid");
+        const localVideo = document.getElementById("local-video");
+        const roomStatusText = document.getElementById("room-status-text");
+        const activeRoomNameDisplay = document.getElementById("active-room-name");
+        const participantCount = document.getElementById("participant-count");
+
+        // Control buttons
+        const toggleMicBtn = document.getElementById("toggle-mic");
+        const toggleVideoBtn = document.getElementById("toggle-video");
+        const leaveBtn = document.getElementById("leave-btn");
+
+        // Check if the URL contains a room ID (for invitation links)
+        const urlParams = new URLSearchParams(window.location.search);
+        const queryRoomId = urlParams.get('room');
+
+        if (queryRoomId) {
+            roomId = queryRoomId;
+            roomStatusText.innerText = `You are invited to join room: ${roomId}`;
+            // Hide admin panel if user joins via link
+            document.getElementById("admin-panel").classList.add("hidden");
+            document.getElementById("divider-line").classList.add("hidden");
         }
 
-        // ============================================================
-        //  GENERATE USER ID
-        // ============================================================
-        function generateUserId() {
-            return 'user_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 6);
-        }
+        // Create a new meeting (Admin action)
+        createBtn.addEventListener("click", () => {
+            const inputVal = roomInput.value.trim();
+            if (!inputVal) {
+                alert("Please enter a room name");
+                return;
+            }
+            roomId = encodeURIComponent(inputVal);
+            const inviteUrl = `${window.location.origin}${window.location.pathname}?room=${roomId}`;
+            shareLinkInput.value = inviteUrl;
+            inviteBox.classList.remove("hidden");
+        });
 
-        // ============================================================
-        //  GENERATE ROOM ID
-        // ============================================================
-        function generateRoomId() {
-            return 'room_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 6);
-        }
+        // Copy Invitation Link
+        copyBtn.addEventListener("click", () => {
+            shareLinkInput.select();
+            document.execCommand("copy");
+            copyBtn.innerText = "Copied!";
+            setTimeout(() => { copyBtn.innerText = "Copy"; }, 2000);
+        });
 
-        // ============================================================
-        //  GET LOCAL MEDIA
-        // ============================================================
-        async function getLocalMedia() {
+        // Join Meeting Action (Admin or Employee)
+        joinBtn.addEventListener("click", async () => {
+            if (!roomId) {
+                alert("No active meeting room found. Please create one or use a valid invite link.");
+                return;
+            }
+            await startMeeting();
+        });
+
+        // Start WebRTC and Signalling Session
+        async function startMeeting() {
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    video: {
-                        width: { ideal: 640 },
-                        height: { ideal: 480 },
-                        facingMode: 'user'
-                    },
-                    audio: {
-                        echoCancellation: true,
-                        noiseSuppression: true,
-                        autoGainControl: true
-                    }
-                });
-                return stream;
-            } catch (err) {
-                console.error('Media error:', err);
-                throw err;
-            }
-        }
-
-        // ============================================================
-        //  CREATE VIDEO ELEMENT
-        // ============================================================
-        function createVideoElement(uid, name, isLocal = false, role = '') {
-            // Remove empty state
-            videoGrid.classList.remove('empty');
-            
-            // Check if element already exists
-            const existing = document.getElementById(`video-${uid}`);
-            if (existing) {
-                return {
-                    wrapper: existing,
-                    video: existing.querySelector('video'),
-                    label: existing.querySelector('.video-label'),
-                    muteInd: existing.querySelector('.mute-indicator')
-                };
+                // Request mic and camera access
+                localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                localVideo.srcObject = localStream;
+            } catch (error) {
+                console.error("Error accessing media devices:", error);
+                alert("Could not access camera or microphone. Please ensure permissions are granted.");
+                return;
             }
 
-            const wrapper = document.createElement('div');
-            wrapper.className = 'video-item';
-            wrapper.id = `video-${uid}`;
+            // Switch Screen Views
+            setupContainer.classList.add("hidden");
+            meetingContainer.classList.remove("hidden");
+            meetingContainer.classList.add("flex");
+            activeRoomNameDisplay.innerText = decodeURIComponent(roomId);
 
-            const video = document.createElement('video');
-            video.autoplay = true;
-            video.playsInline = true;
-            video.muted = isLocal;
+            // Register yourself in the database
+            const userRef = ref(db, `rooms/${roomId}/users/${myId}`);
+            set(userRef, { id: myId, joinedAt: Date.now() });
 
-            const label = document.createElement('div');
-            label.className = 'video-label';
-            const displayName = isLocal ? 'আপনি' : (name || uid.substring(0, 12));
-            label.innerHTML = `${displayName} ${role ? `<span class="role-badge">${role}</span>` : ''}`;
+            // Remove self from DB upon closing tab/disconnecting
+            window.addEventListener("beforeunload", leaveMeeting);
 
-            const muteInd = document.createElement('div');
-            muteInd.className = 'mute-indicator';
-            muteInd.id = `mute-ind-${uid}`;
-            muteInd.innerHTML = '<i class="fas fa-microphone-slash"></i> মিউট';
-
-            wrapper.appendChild(video);
-            wrapper.appendChild(label);
-            wrapper.appendChild(muteInd);
-
-            if (isLocal) {
-                localVideoElement = video;
-            }
-
-            videoGrid.appendChild(wrapper);
-            return { wrapper, video, label, muteInd };
-        }
-
-        // ============================================================
-        //  REMOVE VIDEO ELEMENT
-        // ============================================================
-        function removeVideoElement(uid) {
-            const el = document.getElementById(`video-${uid}`);
-            if (el) {
-                const video = el.querySelector('video');
-                if (video && video.srcObject) {
-                    video.srcObject.getTracks().forEach(t => t.stop());
+            // Signalling: Listen for other users joining
+            const usersRef = ref(db, `rooms/${roomId}/users`);
+            onChildAdded(usersRef, (snapshot) => {
+                const newUser = snapshot.val();
+                if (newUser.id !== myId) {
+                    initiateCall(newUser.id);
                 }
-                el.remove();
-            }
+            });
 
-            // Check if grid is empty
-            if (videoGrid.children.length === 0) {
-                videoGrid.classList.add('empty');
-                videoGrid.innerHTML = `
-                    <i class="fas fa-video"></i>
-                    <span>কোন মিটিং চলছে না</span>
-                    <span style="font-size:0.8rem; opacity:0.5;">উপরে মিটিং তৈরি করুন এবং কর্মীদের আমন্ত্রণ জানান</span>
-                `;
-            }
-        }
+            // Signalling: Listen for disconnects
+            onChildRemoved(usersRef, (snapshot) => {
+                const leftUser = snapshot.val();
+                removePeerConnection(leftUser.id);
+            });
 
-        // ============================================================
-        //  SIGNALING
-        // ============================================================
-        function sendSignal(targetId, signal) {
-            if (!currentRoomId || !userId) return;
-            const signalRef = database.ref(`meetings/${currentRoomId}/signals/${targetId}`);
-            signalRef.push({
-                from: userId,
-                signal: signal,
-                timestamp: firebase.database.ServerValue.TIMESTAMP
+            // Listen for signals (Offer, Answer, ICE Candidates)
+            const signalsRef = ref(db, `rooms/${roomId}/signals/${myId}`);
+            onChildAdded(signalsRef, async (snapshot) => {
+                const signal = snapshot.val();
+                if (signal.sender !== myId) {
+                    await handleIncomingSignal(signal, snapshot.key);
+                }
+            });
+
+            // Keep track of participant count
+            onValue(usersRef, (snapshot) => {
+                if(snapshot.exists()) {
+                    const count = Object.keys(snapshot.val()).length;
+                    participantCount.innerText = `Participants: ${count}`;
+                }
             });
         }
 
-        // ============================================================
-        //  CREATE PEER CONNECTION (Mesh Topology)
-        // ============================================================
-        function createPeerConnection(peerId, isOfferer = false) {
-            console.log(`Creating peer connection with ${peerId}, offerer: ${isOfferer}`);
-            
-            const pc = new RTCPeerConnection(rtcConfig);
+        // Setup RTCPeerConnection for a specific remote user
+        function setupPeerConnection(remoteId) {
+            const pc = new RTCPeerConnection(iceServers);
+            peerConnections[remoteId] = pc;
 
-            // Add local tracks to peer
-            if (localStream) {
-                localStream.getTracks().forEach(track => {
-                    pc.addTrack(track, localStream);
-                });
-            }
+            // Add local stream tracks to connection
+            localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
 
-            // Handle incoming tracks
+            // Remote stream arrival
             pc.ontrack = (event) => {
-                console.log(`Received track from ${peerId}`);
-                const [stream] = event.streams;
-                
-                // Check if video element exists, if not create it
-                let videoWrapper = document.getElementById(`video-${peerId}`);
-                if (!videoWrapper) {
-                    // Get participant name from Firebase
-                    database.ref(`meetings/${currentRoomId}/participants/${peerId}/name`).once('value')
-                        .then(snap => {
-                            const name = snap.val() || peerId.substring(0, 12);
-                            const role = peerId === userId ? 'হোস্ট' : '';
-                            const { wrapper, video } = createVideoElement(peerId, name, false, role);
-                            if (video) {
-                                video.srcObject = stream;
-                                video.play().catch(e => console.warn('Video play error:', e));
-                            }
-                        })
-                        .catch(err => console.error('Error getting participant name:', err));
-                } else {
-                    const video = videoWrapper.querySelector('video');
-                    if (video) {
-                        video.srcObject = stream;
-                        video.play().catch(e => console.warn('Video play error:', e));
-                    }
+                let remoteVideo = document.getElementById(`video-${remoteId}`);
+                if (!remoteVideo) {
+                    // Create video element container
+                    const container = document.createElement("div");
+                    container.id = `container-${remoteId}`;
+                    container.className = "relative bg-gray-900 rounded-lg overflow-hidden border border-gray-800";
+
+                    remoteVideo = document.createElement("video");
+                    remoteVideo.id = `video-${remoteId}`;
+                    remoteVideo.autoplay = true;
+                    remoteVideo.playsInline = true;
+                    remoteVideo.className = "w-full h-full object-cover";
+                    remoteVideo.srcObject = event.streams[0];
+
+                    const label = document.createElement("div");
+                    label.className = "absolute bottom-2 left-2 bg-black bg-opacity-60 px-2 py-1 rounded text-xs";
+                    label.innerText = `Participant`;
+
+                    container.appendChild(remoteVideo);
+                    container.appendChild(label);
+                    videoGrid.appendChild(container);
                 }
             };
 
-            // Handle ICE candidates
+            // ICE Candidate discovery
             pc.onicecandidate = (event) => {
                 if (event.candidate) {
-                    console.log(`Sending ICE candidate to ${peerId}`);
-                    sendSignal(peerId, {
-                        type: 'candidate',
-                        candidate: event.candidate
+                    sendSignal(remoteId, {
+                        type: "candidate",
+                        candidate: JSON.stringify(event.candidate)
                     });
                 }
             };
-
-            // ICE connection state
-            pc.oniceconnectionstatechange = () => {
-                console.log(`ICE state with ${peerId}: ${pc.iceConnectionState}`);
-                if (pc.iceConnectionState === 'disconnected' || 
-                    pc.iceConnectionState === 'failed' || 
-                    pc.iceConnectionState === 'closed') {
-                    console.log(`Disconnected from ${peerId}`);
-                    removeVideoElement(peerId);
-                    delete peerConnections[peerId];
-                    updateParticipantCount();
-                }
-            };
-
-            // Connection state
-            pc.onconnectionstatechange = () => {
-                console.log(`Connection state with ${peerId}: ${pc.connectionState}`);
-                if (pc.connectionState === 'connected') {
-                    showToast(`✅ ${peerId.substring(0, 10)}... এর সাথে সংযুক্ত`);
-                }
-            };
-
-            peerConnections[peerId] = pc;
-
-            // If we are the offerer, create offer
-            if (isOfferer) {
-                setTimeout(() => {
-                    pc.createOffer()
-                        .then(offer => {
-                            console.log(`Creating offer for ${peerId}`);
-                            return pc.setLocalDescription(offer);
-                        })
-                        .then(() => {
-                            sendSignal(peerId, {
-                                type: 'offer',
-                                sdp: pc.localDescription
-                            });
-                        })
-                        .catch(err => console.error('Offer error:', err));
-                }, 500);
-            }
 
             return pc;
         }
 
-        // ============================================================
-        //  HANDLE SIGNALS
-        // ============================================================
-        function handleSignal(peerId, signalData) {
-            const signal = signalData.signal;
-            console.log(`Handling signal from ${peerId}:`, signal.type);
+        // Call Initiator logic (Runs when a new user joins)
+        async function initiateCall(remoteId) {
+            const pc = setupPeerConnection(remoteId);
+            const offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
 
-            // Get or create peer connection
-            let pc = peerConnections[peerId];
+            sendSignal(remoteId, {
+                type: "offer",
+                sdp: offer.sdp
+            });
+        }
+
+        // Send signalling message via Firebase
+        function sendSignal(remoteId, data) {
+            const targetSignalsRef = ref(db, `rooms/${roomId}/signals/${remoteId}`);
+            const newSignalRef = push(targetSignalsRef);
+            set(newSignalRef, {
+                ...data,
+                sender: myId,
+                timestamp: Date.now()
+            });
+        }
+
+        // Handle incoming signalling messages
+        async function handleIncomingSignal(signal, signalKey) {
+            const remoteId = signal.sender;
+            let pc = peerConnections[remoteId];
 
             if (!pc) {
-                if (signal.type === 'offer') {
-                    console.log(`Creating peer connection as answerer for ${peerId}`);
-                    pc = createPeerConnection(peerId, false);
-                } else {
-                    console.log(`No peer connection for ${peerId}, ignoring signal`);
-                    return;
-                }
+                pc = setupPeerConnection(remoteId);
             }
 
-            try {
-                if (signal.type === 'offer') {
-                    pc.setRemoteDescription(new RTCSessionDescription(signal.sdp))
-                        .then(() => {
-                            console.log(`Creating answer for ${peerId}`);
-                            return pc.createAnswer();
-                        })
-                        .then(answer => {
-                            console.log(`Setting local description for ${peerId}`);
-                            return pc.setLocalDescription(answer);
-                        })
-                        .then(() => {
-                            sendSignal(peerId, {
-                                type: 'answer',
-                                sdp: pc.localDescription
-                            });
-                        })
-                        .catch(err => console.error('Answer error:', err));
-                } else if (signal.type === 'answer') {
-                    pc.setRemoteDescription(new RTCSessionDescription(signal.sdp))
-                        .catch(err => console.error('Set remote desc error:', err));
-                } else if (signal.type === 'candidate') {
-                    if (signal.candidate) {
-                        pc.addIceCandidate(new RTCIceCandidate(signal.candidate))
-                            .catch(err => console.error('Add ICE error:', err));
-                    }
-                }
-            } catch (err) {
-                console.error('Signal handling error:', err);
-            }
-        }
+            if (signal.type === "offer") {
+                await pc.setRemoteDescription(new RTCSessionDescription({ type: "offer", sdp: signal.sdp }));
+                const answer = await pc.createAnswer();
+                await pc.setLocalDescription(answer);
 
-        // ============================================================
-        //  UPDATE PARTICIPANT COUNT
-        // ============================================================
-        function updateParticipantCount() {
-            if (!participantsRef) return;
-            participantsRef.once('value', (snapshot) => {
-                const count = snapshot.numChildren() || 0;
-                participantCountDisplay.textContent = count;
-            });
-        }
-
-        // ============================================================
-        //  UPDATE MEETING STATUS
-        // ============================================================
-        function updateMeetingStatus(status) {
-            const statusMap = {
-                'waiting': { text: 'অপেক্ষমান', class: 'waiting' },
-                'live': { text: 'লাইভ', class: 'live' },
-                'ended': { text: 'শেষ', class: 'ended' }
-            };
-            const s = statusMap[status] || statusMap.waiting;
-            meetingStatus.textContent = s.text;
-            meetingStatusBadge.className = `status-badge ${s.class}`;
-            meetingStatusBadge.innerHTML = `<i class="fas fa-circle"></i> ${s.text}`;
-        }
-
-        // ============================================================
-        //  CREATE MEETING
-        // ============================================================
-        async function createMeeting() {
-            const meetingName = meetingNameInput.value.trim() || 'অফিস মিটিং';
-            currentMeetingName = meetingName;
-
-            currentRoomId = generateRoomId();
-            userId = generateUserId();
-            isHost = true;
-
-            roomRef = database.ref(`meetings/${currentRoomId}`);
-            participantsRef = roomRef.child('participants');
-            signalsRef = roomRef.child('signals');
-
-            await roomRef.set({
-                name: meetingName,
-                hostId: userId,
-                createdAt: firebase.database.ServerValue.TIMESTAMP,
-                status: 'waiting'
-            });
-
-            await participantsRef.child(userId).set({
-                name: 'বস',
-                role: 'host',
-                joinedAt: firebase.database.ServerValue.TIMESTAMP
-            });
-
-            const inviteLink = `${window.location.origin}${window.location.pathname}?room=${currentRoomId}`;
-            inviteLinkInput.value = inviteLink;
-            inviteLinkCard.classList.add('show');
-
-            roomIdDisplay.textContent = currentRoomId;
-            hostNameDisplay.textContent = 'বস (আপনি)';
-            userRoleDisplay.innerHTML = '<i class="fas fa-user-tie"></i> বস (হোস্ট)';
-            userAvatar.textContent = 'ব';
-
-            updateMeetingStatus('waiting');
-            updateParticipantCount();
-
-            showToast(`✅ মিটিং তৈরি হয়েছে: ${meetingName}`);
-
-            joinAsHostBtn.disabled = false;
-            createMeetingBtn.disabled = true;
-            meetingNameInput.disabled = true;
-
-            // Listen for participants
-            participantsRef.on('child_added', (snapshot) => {
-                const peerId = snapshot.key;
-                if (peerId === userId) return;
-                const data = snapshot.val();
-                console.log(`New participant: ${peerId}`);
-                
-                // Create peer connection as offerer
-                if (!peerConnections[peerId]) {
-                    createPeerConnection(peerId, true);
-                    showToast(`👤 ${data.name || 'কর্মী'} জয়েন করেছেন!`);
-                }
-                updateParticipantCount();
-            });
-
-            participantsRef.on('child_removed', (snapshot) => {
-                const peerId = snapshot.key;
-                if (peerId === userId) return;
-                console.log(`Participant left: ${peerId}`);
-                removeVideoElement(peerId);
-                if (peerConnections[peerId]) {
-                    peerConnections[peerId].close();
-                    delete peerConnections[peerId];
-                }
-                updateParticipantCount();
-                showToast(`👤 একজন কর্মী লিভ করেছেন।`);
-            });
-
-            // Signals listener
-            signalsRef.on('child_added', (snapshot) => {
-                const peerId = snapshot.key;
-                if (peerId === userId) return;
-                
-                snapshot.ref.on('child_added', (signalSnapshot) => {
-                    const data = signalSnapshot.val();
-                    if (data.from === userId) return;
-                    handleSignal(peerId, data);
+                sendSignal(remoteId, {
+                    type: "answer",
+                    sdp: answer.sdp
                 });
-            });
-
-            roomRef.on('child_changed', (snapshot) => {
-                if (snapshot.key === 'status') {
-                    const status = snapshot.val();
-                    updateMeetingStatus(status);
-                    if (status === 'ended') {
-                        showToast('মিটিং শেষ হয়েছে।');
-                        leaveMeeting();
-                    }
+            } else if (signal.type === "answer") {
+                await pc.setRemoteDescription(new RTCSessionDescription({ type: "answer", sdp: signal.sdp }));
+            } else if (signal.type === "candidate") {
+                const candidate = JSON.parse(signal.candidate);
+                try {
+                    await pc.addIceCandidate(new RTCIceCandidate(candidate));
+                } catch (e) {
+                    console.error("Error adding ice candidate", e);
                 }
-            });
+            }
 
-            roomRef.onDisconnect().update({
-                [`participants/${userId}`]: null
-            });
+            // Optional: signal data deletion after processing to keep the database light
+            const processedSignalRef = ref(db, `rooms/${roomId}/signals/${myId}/${signalKey}`);
+            remove(processedSignalRef);
         }
 
-        // ============================================================
-        //  JOIN MEETING (for employees)
-        // ============================================================
-        async function joinMeeting(roomId) {
-            if (isInMeeting) {
-                showToast('আপনি ইতিমধ্যে মিটিংয়ে আছেন!');
-                return;
+        // Remove video and close peer connection
+        function removePeerConnection(remoteId) {
+            if (peerConnections[remoteId]) {
+                peerConnections[remoteId].close();
+                delete peerConnections[remoteId];
             }
-
-            currentRoomId = roomId;
-            userId = generateUserId();
-            isHost = false;
-
-            const roomSnap = await database.ref(`meetings/${currentRoomId}`).once('value');
-            if (!roomSnap.exists()) {
-                showToast('❌ এই মিটিংটি বিদ্যমান নেই!');
-                return;
-            }
-
-            const roomData = roomSnap.val();
-            if (roomData.status === 'ended') {
-                showToast('❌ এই মিটিংটি ইতিমধ্যে শেষ হয়েছে!');
-                return;
-            }
-
-            currentMeetingName = roomData.name || 'অফিস মিটিং';
-
-            roomRef = database.ref(`meetings/${currentRoomId}`);
-            participantsRef = roomRef.child('participants');
-            signalsRef = roomRef.child('signals');
-
-            userName = prompt('আপনার নাম দিন:', 'কর্মী') || 'কর্মী';
-
-            await participantsRef.child(userId).set({
-                name: userName,
-                role: 'employee',
-                joinedAt: firebase.database.ServerValue.TIMESTAMP
-            });
-
-            roomIdDisplay.textContent = currentRoomId;
-            hostNameDisplay.textContent = roomData.hostId || 'বস';
-            userRoleDisplay.innerHTML = `<i class="fas fa-user"></i> ${userName} (কর্মী)`;
-            userAvatar.textContent = userName.charAt(0).toUpperCase();
-
-            inviteLinkCard.classList.add('show');
-            inviteLinkInput.value = window.location.href;
-            createMeetingBtn.disabled = true;
-            meetingNameInput.disabled = true;
-
-            updateMeetingStatus(roomData.status || 'waiting');
-
-            showToast(`✅ মিটিংয়ে জয়েন করেছেন: ${currentMeetingName}`);
-
-            // Listen for participants
-            participantsRef.on('child_added', (snapshot) => {
-                const peerId = snapshot.key;
-                if (peerId === userId) return;
-                const data = snapshot.val();
-                console.log(`New participant: ${peerId}`);
-                
-                // Create peer connection as answerer (wait for offer)
-                if (!peerConnections[peerId]) {
-                    createPeerConnection(peerId, false);
-                }
-                updateParticipantCount();
-            });
-
-            participantsRef.on('child_removed', (snapshot) => {
-                const peerId = snapshot.key;
-                if (peerId === userId) return;
-                console.log(`Participant left: ${peerId}`);
-                removeVideoElement(peerId);
-                if (peerConnections[peerId]) {
-                    peerConnections[peerId].close();
-                    delete peerConnections[peerId];
-                }
-                updateParticipantCount();
-            });
-
-            signalsRef.on('child_added', (snapshot) => {
-                const peerId = snapshot.key;
-                if (peerId === userId) return;
-                
-                snapshot.ref.on('child_added', (signalSnapshot) => {
-                    const data = signalSnapshot.val();
-                    if (data.from === userId) return;
-                    handleSignal(peerId, data);
-                });
-            });
-
-            roomRef.on('child_changed', (snapshot) => {
-                if (snapshot.key === 'status') {
-                    const status = snapshot.val();
-                    updateMeetingStatus(status);
-                    if (status === 'ended') {
-                        showToast('মিটিং শেষ হয়েছে।');
-                        leaveMeeting();
-                    }
-                }
-            });
-
-            roomRef.onDisconnect().update({
-                [`participants/${userId}`]: null
-            });
-
-            // Start local stream
-            await startLocalStream();
-
-            joinAsHostBtn.disabled = true;
-            endMeetingBtn.style.display = 'none';
-        }
-
-        // ============================================================
-        //  START LOCAL STREAM
-        // ============================================================
-        async function startLocalStream() {
-            try {
-                localStream = await getLocalMedia();
-                const { video } = createVideoElement(userId, isHost ? 'বস' : userName, true, isHost ? 'হোস্ট' : '');
-                video.srcObject = localStream;
-                video.play().catch(e => console.warn('Video play error:', e));
-
-                isInMeeting = true;
-                micBtn.disabled = false;
-                camBtn.disabled = false;
-                screenBtn.disabled = false;
-                leaveBtn.disabled = false;
-
-                if (isHost) {
-                    await roomRef.update({ status: 'live' });
-                    updateMeetingStatus('live');
-                    endMeetingBtn.style.display = 'inline-flex';
-                }
-
-                updateUIButtons();
-                showToast('🎥 ভিডিও স্ট্রিম শুরু হয়েছে!');
-
-                // Connect to existing participants after stream is ready
-                setTimeout(() => {
-                    participantsRef.once('value', (snapshot) => {
-                        snapshot.forEach((child) => {
-                            const peerId = child.key;
-                            if (peerId !== userId && !peerConnections[peerId]) {
-                                console.log(`Connecting to existing participant: ${peerId}`);
-                                if (isHost) {
-                                    // Host offers connection
-                                    createPeerConnection(peerId, true);
-                                } else {
-                                    // Employee waits for offer
-                                    createPeerConnection(peerId, false);
-                                }
-                            }
-                        });
-                    });
-                }, 1000);
-
-            } catch (err) {
-                console.error('Stream error:', err);
-                showToast('❌ ক্যামেরা/মাইক অ্যাক্সেস করতে ব্যর্থ!');
+            const videoElem = document.getElementById(`container-${remoteId}`);
+            if (videoElem) {
+                videoElem.remove();
             }
         }
 
-        // ============================================================
-        //  LEAVE MEETING
-        // ============================================================
+        // Controls: Toggle Microphone
+        toggleMicBtn.addEventListener("click", () => {
+            isMicOn = !isMicOn;
+            localStream.getAudioTracks()[0].enabled = isMicOn;
+            toggleMicBtn.innerHTML = isMicOn ? 
+                `<i class="fa-solid fa-microphone text-white"></i>` : 
+                `<i class="fa-solid fa-microphone-slash text-red-500"></i>`;
+            toggleMicBtn.classList.toggle("bg-gray-800", isMicOn);
+            toggleMicBtn.classList.toggle("bg-red-900", !isMicOn);
+        });
+
+        // Controls: Toggle Video Camera
+        toggleVideoBtn.addEventListener("click", () => {
+            isVideoOn = !isVideoOn;
+            localStream.getVideoTracks()[0].enabled = isVideoOn;
+            toggleVideoBtn.innerHTML = isVideoOn ? 
+                `<i class="fa-solid fa-video text-white"></i>` : 
+                `<i class="fa-solid fa-video-slash text-red-500"></i>`;
+            toggleVideoBtn.classList.toggle("bg-gray-800", isVideoOn);
+            toggleVideoBtn.classList.toggle("bg-red-900", !isVideoOn);
+        });
+
+        // Leave Meeting Logic
         function leaveMeeting() {
-            // Remove local video
-            if (userId) {
-                removeVideoElement(userId);
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
             }
 
-            // Close all peer connections
-            Object.keys(peerConnections).forEach(key => {
-                try {
-                    peerConnections[key].close();
-                } catch (e) {}
-                delete peerConnections[key];
+            // Remove node from Firebase
+            if (roomId) {
+                remove(ref(db, `rooms/${roomId}/users/${myId}`));
+            }
+
+            // Clear peer connections
+            Object.keys(peerConnections).forEach(remoteId => {
+                removePeerConnection(remoteId);
             });
 
-            // Remove from Firebase
-            if (participantsRef && userId) {
-                try {
-                    participantsRef.child(userId).remove();
-                } catch (e) {}
-            }
-
-            if (signalsRef) {
-                try {
-                    signalsRef.off();
-                } catch (e) {}
-            }
-            if (participantsRef) {
-                try {
-                    participantsRef.off();
-                } catch (e) {}
-            }
-            if (roomRef) {
-                try {
-                    roomRef.off();
-                } catch (e) {}
-            }
-
-            // Stop streams
-            if (localStream) {
-                localStream.getTracks().forEach(t => t.stop());
-                localStream = null;
-            }
-            if (localScreenStream) {
-                localScreenStream.getTracks().forEach(t => t.stop());
-                localScreenStream = null;
-            }
-
-            // If host, end meeting
-            if (isHost && currentRoomId) {
-                database.ref(`meetings/${currentRoomId}/status`).set('ended');
-            }
-
-            isInMeeting = false;
-            isScreenSharing = false;
-            userId = null;
-
-            micBtn.disabled = true;
-            camBtn.disabled = true;
-            screenBtn.disabled = true;
-            leaveBtn.disabled = true;
-
-            joinAsHostBtn.disabled = false;
-            createMeetingBtn.disabled = false;
-            meetingNameInput.disabled = false;
-            endMeetingBtn.style.display = 'none';
-
-            updateMeetingStatus('ended');
-            updateParticipantCount();
-
-            showToast('📴 মিটিং থেকে লিভ করেছেন।');
-            updateUIButtons();
+            // Reload page to return to state zero
+            window.location.href = window.location.origin + window.location.pathname;
         }
 
-        // ============================================================
-        //  TOGGLE MIC
-        // ============================================================
-        function toggleMic() {
-            if (!localStream) return;
-            const audioTracks = localStream.getAudioTracks();
-            if (audioTracks.length === 0) return;
-            isMicMuted = !isMicMuted;
-            audioTracks.forEach(track => track.enabled = !isMicMuted);
-            updateUIButtons();
-
-            const muteInd = document.getElementById(`mute-ind-${userId}`);
-            if (muteInd) {
-                if (isMicMuted) {
-                    muteInd.classList.add('show');
-                } else {
-                    muteInd.classList.remove('show');
-                }
-            }
-        }
-
-        // ============================================================
-        //  TOGGLE CAM
-        // ============================================================
-        function toggleCam() {
-            if (!localStream) return;
-            const videoTracks = localStream.getVideoTracks();
-            if (videoTracks.length === 0) return;
-            isCamOff = !isCamOff;
-            videoTracks.forEach(track => track.enabled = !isCamOff);
-            updateUIButtons();
-        }
-
-        // ============================================================
-        //  TOGGLE SCREEN SHARE
-        // ============================================================
-        async function toggleScreenShare() {
-            if (!isInMeeting) {
-                showToast('প্রথমে মিটিংয়ে জয়েন করুন!');
-                return;
-            }
-
-            if (isScreenSharing) {
-                if (localScreenStream) {
-                    localScreenStream.getTracks().forEach(t => t.stop());
-                    localScreenStream = null;
-                }
-                isScreenSharing = false;
-
-                if (localStream) {
-                    const videoTrack = localStream.getVideoTracks()[0];
-                    if (videoTrack) {
-                        Object.values(peerConnections).forEach(pc => {
-                            const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
-                            if (sender) {
-                                sender.replaceTrack(videoTrack);
-                            }
-                        });
-                    }
-                    if (localVideoElement) {
-                        localVideoElement.srcObject = localStream;
-                    }
-                }
-                showToast('স্ক্রিন শেয়ার বন্ধ করা হয়েছে।');
-                updateUIButtons();
-                return;
-            }
-
-            try {
-                const screenStream = await navigator.mediaDevices.getDisplayMedia({
-                    video: true,
-                    audio: false
-                });
-
-                localScreenStream = screenStream;
-                isScreenSharing = true;
-
-                const videoTrack = screenStream.getVideoTracks()[0];
-                if (videoTrack) {
-                    Object.values(peerConnections).forEach(pc => {
-                        const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
-                        if (sender) {
-                            sender.replaceTrack(videoTrack);
-                        }
-                    });
-
-                    if (localVideoElement) {
-                        localVideoElement.srcObject = screenStream;
-                    }
-
-                    videoTrack.onended = () => {
-                        if (isScreenSharing) {
-                            toggleScreenShare();
-                        }
-                    };
-                }
-
-                showToast('🖥️ স্ক্রিন শেয়ার শুরু হয়েছে!');
-                updateUIButtons();
-
-            } catch (err) {
-                console.error('Screen share error:', err);
-                showToast('স্ক্রিন শেয়ার করতে ব্যর্থ!');
-            }
-        }
-
-        // ============================================================
-        //  UPDATE UI BUTTONS
-        // ============================================================
-        function updateUIButtons() {
-            if (isMicMuted) {
-                micBtn.classList.add('muted');
-                micBtn.innerHTML = '<i class="fas fa-microphone-slash"></i>';
-            } else {
-                micBtn.classList.remove('muted');
-                micBtn.innerHTML = '<i class="fas fa-microphone"></i>';
-            }
-
-            if (isCamOff) {
-                camBtn.classList.add('off');
-                camBtn.innerHTML = '<i class="fas fa-video-slash"></i>';
-            } else {
-                camBtn.classList.remove('off');
-                camBtn.innerHTML = '<i class="fas fa-video"></i>';
-            }
-
-            if (isScreenSharing) {
-                screenBtn.classList.add('active');
-                screenBtn.innerHTML = '<i class="fas fa-desktop"></i> বন্ধ';
-            } else {
-                screenBtn.classList.remove('active');
-                screenBtn.innerHTML = '<i class="fas fa-desktop"></i>';
-            }
-        }
-
-        // ============================================================
-        //  COPY LINK
-        // ============================================================
-        function copyLink() {
-            inviteLinkInput.select();
-            document.execCommand('copy');
-            showToast('📋 লিংক কপি করা হয়েছে!');
-        }
-
-        // ============================================================
-        //  END MEETING (Host only)
-        // ============================================================
-        function endMeeting() {
-            if (!isHost) {
-                showToast('শুধুমাত্র হোস্ট মিটিং শেষ করতে পারেন!');
-                return;
-            }
-            if (confirm('আপনি কি নিশ্চিত যে মিটিংটি শেষ করতে চান?')) {
-                if (roomRef) {
-                    roomRef.update({ status: 'ended' });
-                }
-                leaveMeeting();
-                showToast('🏁 মিটিং শেষ হয়েছে।');
-            }
-        }
-
-        // ============================================================
-        //  CHECK URL PARAMETERS FOR ROOM JOIN
-        // ============================================================
-        function checkUrlForRoom() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const roomId = urlParams.get('room');
-            if (roomId) {
-                setTimeout(() => {
-                    joinMeeting(roomId);
-                }, 500);
-            }
-        }
-
-        // ============================================================
-        //  EVENT LISTENERS
-        // ============================================================
-        createMeetingBtn.addEventListener('click', createMeeting);
-        joinAsHostBtn.addEventListener('click', async () => {
-            if (currentRoomId) {
-                await startLocalStream();
-            }
-        });
-        endMeetingBtn.addEventListener('click', endMeeting);
-        copyLinkBtn.addEventListener('click', copyLink);
-        micBtn.addEventListener('click', toggleMic);
-        camBtn.addEventListener('click', toggleCam);
-        screenBtn.addEventListener('click', toggleScreenShare);
-        leaveBtn.addEventListener('click', leaveMeeting);
-
-        meetingNameInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') createMeeting();
-        });
-
-        // ============================================================
-        //  INIT
-        // ============================================================
-        console.log('🏢 অফিস মিটিং অ্যাপ্লিকেশন রেডি!');
-        console.log('👨‍💼 বস মিটিং তৈরি করবে, কর্মীরা লিংকে ক্লিক করে জয়েন করবে।');
-        console.log('👥 মেশ টপোলজি - সবাই সবাইকে দেখতে পাবে!');
-
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-            showToast('❌ আপনার ব্রাউজার WebRTC সাপোর্ট করে না!', 5000);
-        }
-
-        const isSecure = window.location.protocol === 'https:' ||
-            window.location.hostname === 'localhost' ||
-            window.location.hostname === '127.0.0.1';
-
-        if (!isSecure) {
-            showToast('⚠️ নিরাপদ সংযোগ প্রয়োজন! HTTPS বা localhost ব্যবহার করুন।', 5000);
-        }
-
-        checkUrlForRoom();
-        endMeetingBtn.style.display = 'none';
+        leaveBtn.addEventListener("click", leaveMeeting);
     </script>
 </body>
 </html>
